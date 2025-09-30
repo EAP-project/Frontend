@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -17,27 +16,82 @@ import { Input } from "@/components/ui/Input";
 import Link from "next/link";
 import { ArrowLeft, Mail, Lock, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { login } from "@/lib/api";
 
-// Schema for login
+// Schema for login - matches backend LoginRequest
 const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+// Response types matching backend
+interface LoginResponse {
+  message: string;
+  username: string;
+  email: string;
+  role: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  token: string;
+  tokenType: string;
+}
+
+interface ErrorResponse {
+  error: string;
+}
+
 export default function LoginPage() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
+      username: "",
       password: "",
     },
   });
 
-  const onSubmit = (data: LoginFormValues) => {
-    console.log("Login Data:", data);
-    // TODO: Call backend API
+  const onSubmit = async (data: LoginFormValues) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const loginResponse = await login(data);
+      console.log("Login successful:", loginResponse);
+
+      // Store token in localStorage
+      localStorage.setItem("token", loginResponse.token);
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          username: loginResponse.username,
+          email: loginResponse.email,
+          role: loginResponse.role,
+          firstName: loginResponse.firstName,
+          lastName: loginResponse.lastName,
+          phoneNumber: loginResponse.phoneNumber,
+        })
+      );
+
+      // Redirect to dashboard or home page
+      router.push("/dashboard");
+    } catch (error: any) {
+      console.error("Login error:", error);
+      if (error.message === 'Failed to fetch') {
+        setError("Unable to connect to server. Please check if the server is running.");
+      } else {
+        setError(error.message || "An unexpected error occurred. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -63,7 +117,7 @@ export default function LoginPage() {
             {/* Left Illustration */}
             <div className="hidden lg:flex lg:flex-col lg:justify-center">
               <Image
-                src="/images/signin.webp" // 👉 replace with your login illustration
+                src="/images/signin.webp"
                 alt="Login Illustration"
                 width={500}
                 height={400}
@@ -113,6 +167,13 @@ export default function LoginPage() {
                 </p>
               </div>
 
+              {/* Error Message */}
+              {error && (
+                <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-xl">
+                  {error}
+                </div>
+              )}
+
               {/* Login Form Card */}
               <div className="bg-white border border-gray-200 rounded-2xl shadow-xl p-8">
                 <Form {...form}>
@@ -120,22 +181,23 @@ export default function LoginPage() {
                     onSubmit={form.handleSubmit(onSubmit)}
                     className="space-y-5"
                   >
-                    {/* Email */}
+                    {/* Username */}
                     <FormField
                       control={form.control}
-                      name="email"
+                      name="username"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-base text-purple-700">
-                            Email
+                            Username
                           </FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-500 h-5 w-5" />
                               <Input
-                                type="email"
-                                placeholder="you@example.com"
+                                type="text"
+                                placeholder="Enter your username"
                                 className="h-12 pl-10 rounded-xl text-base border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all"
+                                autoComplete="username"
                                 {...field}
                               />
                             </div>
@@ -161,6 +223,7 @@ export default function LoginPage() {
                                 type="password"
                                 placeholder="Enter your password"
                                 className="h-12 pl-10 rounded-xl text-base border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all"
+                                autoComplete="current-password"
                                 {...field}
                               />
                             </div>
@@ -182,9 +245,10 @@ export default function LoginPage() {
 
                     <Button
                       type="submit"
-                      className="w-full h-12 rounded-xl text-base font-semibold bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 transition-all"
+                      disabled={isLoading}
+                      className="w-full h-12 rounded-xl text-base font-semibold bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 transition-all disabled:opacity-50"
                     >
-                      Sign in
+                      {isLoading ? "Signing in..." : "Sign in"}
                     </Button>
                   </form>
                 </Form>
@@ -209,16 +273,12 @@ export default function LoginPage() {
                   >
                     Google
                   </Button>
-
-                  {/* <Button variant="outline" className="h-12 rounded-xl border-2 border-purple-500 text-purple-600 hover:bg-purple-50 transition-colors">
-                    GitHub
-                  </Button> */}
                 </div>
               </div>
 
               {/* Sign Up Link */}
               <p className="text-center text-purple-600 mt-8">
-                Don’t have an account?{" "}
+                Don't have an account?{" "}
                 <Link
                   href="/signup"
                   className="font-semibold hover:text-purple-800 transition-colors"

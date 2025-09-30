@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -22,17 +21,37 @@ import {
   Mail,
   Lock,
   User,
+  Phone,
 } from "lucide-react";
 import Image from "next/image";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
+// Schema for signup - matches backend User model
 const formSchema = z
   .object({
-    fullName: z.string().min(2, "Full name must be at least 2 characters"),
-    email: z.string().email("Invalid email address"),
+    username: z
+      .string()
+      .min(3, "Username must be at least 3 characters")
+      .max(50, "Username must not exceed 50 characters"),
     password: z.string().min(6, "Password must be at least 6 characters"),
     confirmPassword: z
       .string()
       .min(6, "Password must be at least 6 characters"),
+    email: z.string().email("Invalid email address"),
+    firstName: z
+      .string()
+      .min(1, "First name is required")
+      .max(50, "First name must not exceed 50 characters"),
+    lastName: z
+      .string()
+      .min(1, "Last name is required")
+      .max(50, "Last name must not exceed 50 characters"),
+    phoneNumber: z
+      .string()
+      .regex(/^\d{10,15}$/, "Phone number must be between 10 and 15 digits"),
+    role: z.enum(["MANAGER", "CUSTOMER", "SUPERVISOR", "TECHNICIAN"])
+      .describe("Please select a role"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -41,20 +60,72 @@ const formSchema = z
 
 type SignUpFormValues = z.infer<typeof formSchema>;
 
+// Response types matching backend
+interface RegistrationResponse {
+  message: string;
+  username: string;
+  email: string;
+  role: string;
+  firstName: string;
+  lastName: string;
+}
+
+interface ErrorResponse {
+  error: string;
+}
+
 export default function SignUpPage() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      fullName: "",
+      username: "",
       email: "",
       password: "",
       confirmPassword: "",
+      firstName: "",
+      lastName: "",
+      phoneNumber: "",
+      role: "CUSTOMER",
     },
   });
 
-  const onSubmit = (data: SignUpFormValues) => {
-    console.log("Sign Up Data:", data);
-    // TODO: Call backend API
+  const onSubmit = async (data: SignUpFormValues) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("http://localhost:8080/api/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Registration successful
+        const registrationResponse = result as RegistrationResponse;
+        console.log("Registration successful:", registrationResponse);
+
+        // Redirect to login page
+        router.push("/login?message=Registration successful. Please login.");
+      } else {
+        // Registration failed
+        const errorResponse = result as ErrorResponse;
+        setError(errorResponse.error);
+      }
+    } catch (error) {
+      console.error("Registration error:", error);
+      setError("Failed to connect to server. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -80,7 +151,7 @@ export default function SignUpPage() {
             {/* Left Column with Illustration & Benefits */}
             <div className="hidden lg:flex lg:flex-col lg:justify-center">
               <Image
-                src="/images/signup.jpg" // 👉 replace with your image path (public folder)
+                src="/images/signup.jpg"
                 alt="Sign Up Illustration"
                 width={500}
                 height={400}
@@ -129,6 +200,13 @@ export default function SignUpPage() {
                 </p>
               </div>
 
+              {/* Error Message */}
+              {error && (
+                <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-xl">
+                  {error}
+                </div>
+              )}
+
               {/* Sign Up Form Card */}
               <div className="bg-white border border-gray-200 rounded-2xl shadow-xl p-8">
                 <Form {...form}>
@@ -136,21 +214,72 @@ export default function SignUpPage() {
                     onSubmit={form.handleSubmit(onSubmit)}
                     className="space-y-5"
                   >
-                    {/* Full Name */}
+                    {/* Username */}
                     <FormField
                       control={form.control}
-                      name="fullName"
+                      name="username"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-base text-purple-700">
-                            Full Name
+                            Username
                           </FormLabel>
                           <FormControl>
                             <div className="relative">
                               <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-500 h-5 w-5" />
                               <Input
-                                placeholder="John Doe"
+                                placeholder="Enter username"
                                 className="h-12 pl-10 rounded-xl text-base border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all"
+                                autoComplete="username"
+                                {...field}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage className="text-red-600" />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* First Name */}
+                    <FormField
+                      control={form.control}
+                      name="firstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-base text-purple-700">
+                            First Name
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-500 h-5 w-5" />
+                              <Input
+                                placeholder="John"
+                                className="h-12 pl-10 rounded-xl text-base border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all"
+                                autoComplete="given-name"
+                                {...field}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage className="text-red-600" />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Last Name */}
+                    <FormField
+                      control={form.control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-base text-purple-700">
+                            Last Name
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-500 h-5 w-5" />
+                              <Input
+                                placeholder="Doe"
+                                className="h-12 pl-10 rounded-xl text-base border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all"
+                                autoComplete="family-name"
                                 {...field}
                               />
                             </div>
@@ -176,9 +305,62 @@ export default function SignUpPage() {
                                 type="email"
                                 placeholder="you@example.com"
                                 className="h-12 pl-10 rounded-xl text-base border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all"
+                                autoComplete="email"
                                 {...field}
                               />
                             </div>
+                          </FormControl>
+                          <FormMessage className="text-red-600" />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Phone Number */}
+                    <FormField
+                      control={form.control}
+                      name="phoneNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-base text-purple-700">
+                            Phone Number
+                          </FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-500 h-5 w-5" />
+                              <Input
+                                type="tel"
+                                placeholder="1234567890"
+                                className="h-12 pl-10 rounded-xl text-base border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all"
+                                autoComplete="tel"
+                                {...field}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage className="text-red-600" />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Role */}
+                    <FormField
+                      control={form.control}
+                      name="role"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-base text-purple-700">
+                            Role
+                          </FormLabel>
+                          <FormControl>
+                            <select
+                              className="w-full h-12 pl-3 rounded-xl text-base border border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all bg-white"
+                              {...field}
+                            >
+                              <option value="">Select a role</option>
+                              <option value="CUSTOMER">Customer</option>
+                              <option value="MANAGER">Manager</option>
+                              <option value="SUPERVISOR">Supervisor</option>
+                              <option value="TECHNICIAN">Technician</option>
+                            </select>
                           </FormControl>
                           <FormMessage className="text-red-600" />
                         </FormItem>
@@ -201,6 +383,7 @@ export default function SignUpPage() {
                                 type="password"
                                 placeholder="Enter password"
                                 className="h-12 pl-10 rounded-xl text-base border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all"
+                                autoComplete="new-password"
                                 {...field}
                               />
                             </div>
@@ -226,6 +409,7 @@ export default function SignUpPage() {
                                 type="password"
                                 placeholder="Confirm password"
                                 className="h-12 pl-10 rounded-xl text-base border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all"
+                                autoComplete="new-password"
                                 {...field}
                               />
                             </div>
@@ -237,9 +421,10 @@ export default function SignUpPage() {
 
                     <Button
                       type="submit"
-                      className="w-full h-12 rounded-xl text-base font-semibold bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 transition-all"
+                      disabled={isLoading}
+                      className="w-full h-12 rounded-xl text-base font-semibold bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 transition-all disabled:opacity-50"
                     >
-                      Create account
+                      {isLoading ? "Creating account..." : "Create account"}
                     </Button>
                   </form>
                 </Form>
@@ -264,10 +449,6 @@ export default function SignUpPage() {
                   >
                     Google
                   </Button>
-
-                  {/* <Button variant="outline" className="h-12 rounded-xl border-2 border-purple-500 text-purple-600 hover:bg-purple-50 transition-colors">
-                    GitHub
-                  </Button> */}
                 </div>
 
                 {/* Terms */}

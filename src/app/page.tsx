@@ -174,7 +174,7 @@ export default function HomePage() {
             <Button
               asChild
               size="lg"
-              className="h-12 w-full rounded-full bg-white text-indigo-700 hover:bg-gray-100 hover:text-gray-800 sm:w-auto transition-colors"
+              className="h-12 w-full rounded-full border-2 border-white text-black hover:bg-white/10 px-8 text-base sm:w-auto"
             >
               <Link href="/signup">
                 Start free trial
@@ -186,7 +186,7 @@ export default function HomePage() {
               asChild
               size="lg"
               variant="outline"
-              className="h-12 w-full rounded-full border-2 border-white text-white hover:bg-white/10 px-8 text-base sm:w-auto"
+              className="h-12 w-full rounded-full border-2 border-white text-black hover:bg-white/10 px-8 text-base sm:w-auto"
             >
               <Link href="/login">Sign in to your account</Link>
             </Button>
