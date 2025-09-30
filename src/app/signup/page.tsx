@@ -50,9 +50,8 @@ const formSchema = z
     phoneNumber: z
       .string()
       .regex(/^\d{10,15}$/, "Phone number must be between 10 and 15 digits"),
-    role: z.enum(["MANAGER", "CUSTOMER", "SUPERVISOR", "TECHNICIAN"], {
-      required_error: "Please select a role",
-    }),
+    role: z.enum(["MANAGER", "CUSTOMER", "SUPERVISOR", "TECHNICIAN"])
+      .describe("Please select a role"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -356,6 +355,7 @@ export default function SignUpPage() {
                               className="w-full h-12 pl-3 rounded-xl text-base border border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all bg-white"
                               {...field}
                             >
+                              <option value="">Select a role</option>
                               <option value="CUSTOMER">Customer</option>
                               <option value="MANAGER">Manager</option>
                               <option value="SUPERVISOR">Supervisor</option>
