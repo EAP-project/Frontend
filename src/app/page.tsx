@@ -1,103 +1,215 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import Link from "next/link";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/card";
+import {
+  Clock,
+  Calendar,
+  Wrench,
+  Users,
+  BarChart3,
+  Shield,
+  ArrowRight,
+  Sparkles,
+} from "lucide-react";
+
+export default function HomePage() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+      {/* Navbar */}
+      <nav className="sticky top-0 z-50 border-b border-border/40 bg-white/70 backdrop-blur-xl">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600">
+                <Wrench className="h-5 w-5 text-white" />
+              </div>
+              <span className="text-lg font-bold text-indigo-700">
+                AutoService
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="hidden sm:inline-flex"
+              >
+                <Link href="/login">Log in</Link>
+              </Button>
+              <Button
+                asChild
+                size="sm"
+                className="rounded-full bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                <Link href="/signup">Sign up</Link>
+              </Button>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1500&q=80"
+            alt="Car Service Background"
+            className="h-full w-full object-cover opacity-30"
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/40 via-white/60 to-blue-100/70" />
+        </div>
+
+        <div className="relative mx-auto max-w-7xl px-6 py-20 sm:py-28 lg:px-8 lg:py-36 text-center">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/40 px-4 py-1.5 text-sm font-medium backdrop-blur-sm">
+            <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+            <span className="text-indigo-800">
+              Trusted by 500+ service centers
+            </span>
+          </div>
+
+          <h1 className="text-5xl font-bold tracking-tight text-indigo-900 sm:text-6xl lg:text-7xl">
+            Service management made{" "}
+            <span className="bg-gradient-to-r from-indigo-600 to-blue-500 bg-clip-text text-transparent">
+              effortless
+            </span>
+          </h1>
+
+          <p className="mt-8 text-lg leading-relaxed text-gray-700 sm:text-xl lg:text-2xl">
+            The complete platform for automobile service operations. Track time,
+            manage appointments, and delight customers—all in one place.
+          </p>
+
+          <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <Button
+              asChild
+              size="lg"
+              className="h-12 w-full rounded-full bg-indigo-600 hover:bg-indigo-700 text-base text-white sm:w-auto"
+            >
+              <Link href="/signup">
+                Get started—it's free
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              className="h-12 w-full rounded-full border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 px-8 text-base sm:w-auto"
+            >
+              <Link href="/login">Sign in</Link>
+            </Button>
+          </div>
+
+          <p className="mt-6 text-sm text-gray-600">
+            No credit card required • Free 14-day trial
+          </p>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="mx-auto max-w-7xl px-6 py-24 lg:px-8 lg:py-32">
+        <div className="mx-auto max-w-2xl text-center mb-20">
+          <h2 className="text-4xl font-bold tracking-tight text-indigo-900 sm:text-5xl">
+            Everything you need to run your service center
+          </h2>
+          <p className="mt-6 text-lg text-gray-600">
+            Powerful tools designed for modern automobile service operations
+          </p>
+        </div>
+
+        <div className="grid gap-8 lg:grid-cols-3">
+          {[
+            {
+              icon: <Clock className="h-7 w-7 text-indigo-600" />,
+              title: "Time Tracking",
+              desc: "Log service hours with precision. Generate detailed reports and track technician productivity in real-time.",
+              img: "https://cdn-icons-png.flaticon.com/512/2920/2920244.png",
+            },
+            {
+              icon: <Calendar className="h-7 w-7 text-indigo-600" />,
+              title: "Smart Scheduling",
+              desc: "Manage appointments effortlessly with automated reminders, conflict detection, and customer notifications.",
+              img: "https://cdn-icons-png.flaticon.com/512/747/747310.png",
+            },
+            {
+              icon: <Wrench className="h-7 w-7 text-indigo-600" />,
+              title: "Service History",
+              desc: "Complete maintenance records at your fingertips. Track every service, part, and interaction.",
+              img: "https://cdn-icons-png.flaticon.com/512/1055/1055646.png",
+            },
+          ].map((feature, i) => (
+            <Card
+              key={i}
+              className="group relative overflow-hidden border border-indigo-100 bg-white p-8 rounded-2xl shadow-md transition-all hover:border-indigo-300 hover:shadow-xl"
+            >
+              <div className="flex justify-center mb-6">
+                <img
+                  src={feature.img}
+                  alt={feature.title}
+                  className="h-20 w-20 object-contain"
+                />
+              </div>
+              <h3 className="mb-3 text-2xl font-bold text-indigo-800">
+                {feature.title}
+              </h3>
+              <p className="text-gray-600 leading-relaxed">{feature.desc}</p>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="relative overflow-hidden bg-gradient-to-r from-indigo-600 to-blue-500 text-white py-20">
+        <div className="mx-auto max-w-7xl px-6 text-center">
+          <h2 className="text-4xl font-bold sm:text-5xl">
+            Ready to transform your service operations?
+          </h2>
+          <p className="mt-6 text-lg text-blue-100 sm:text-xl">
+            Join hundreds of service centers already streamlining their
+            operations with AutoService
+          </p>
+          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <Button
+              asChild
+              size="lg"
+              className="h-12 w-full rounded-full bg-white text-indigo-700 hover:bg-gray-100 hover:text-gray-800 sm:w-auto transition-colors"
+            >
+              <Link href="/signup">
+                Start free trial
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              className="h-12 w-full rounded-full border-2 border-white text-white hover:bg-white/10 px-8 text-base sm:w-auto"
+            >
+              <Link href="/login">Sign in to your account</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-indigo-100 bg-white">
+        <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8 flex flex-col items-center justify-between gap-4 sm:flex-row">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
+              <Wrench className="h-4 w-4 text-white" />
+            </div>
+            <span className="text-sm font-semibold text-indigo-700">
+              AutoService
+            </span>
+          </div>
+          <p className="text-sm text-gray-500">
+            © 2025 AutoService. All rights reserved.
+          </p>
+        </div>
       </footer>
-    </div>
+    </main>
   );
 }
