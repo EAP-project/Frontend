@@ -176,6 +176,7 @@ export default function SignUpPage() {
                                 type="email"
                                 placeholder="you@example.com"
                                 className="h-12 pl-10 rounded-xl text-base border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all"
+                                autoComplete="email"
                                 {...field}
                               />
                             </div>
@@ -201,6 +202,7 @@ export default function SignUpPage() {
                                 type="password"
                                 placeholder="Enter password"
                                 className="h-12 pl-10 rounded-xl text-base border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all"
+                                autoComplete="new-password"
                                 {...field}
                               />
                             </div>
@@ -226,6 +228,7 @@ export default function SignUpPage() {
                                 type="password"
                                 placeholder="Confirm password"
                                 className="h-12 pl-10 rounded-xl text-base border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all"
+                                autoComplete="new-password"
                                 {...field}
                               />
                             </div>
