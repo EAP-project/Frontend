@@ -20,9 +20,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/api";
 
-// Schema for login - matches backend LoginRequest
+// Schema for login - updated to use email instead of username
 const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
+  email: z.string().email("Please enter a valid email address"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -53,7 +53,7 @@ export default function LoginPage() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -84,10 +84,14 @@ export default function LoginPage() {
       router.push("/dashboard");
     } catch (error: any) {
       console.error("Login error:", error);
-      if (error.message === 'Failed to fetch') {
-        setError("Unable to connect to server. Please check if the server is running.");
+      if (error.message === "Failed to fetch") {
+        setError(
+          "Unable to connect to server. Please check if the server is running."
+        );
       } else {
-        setError(error.message || "An unexpected error occurred. Please try again.");
+        setError(
+          error.message || "An unexpected error occurred. Please try again."
+        );
       }
     } finally {
       setIsLoading(false);
@@ -181,23 +185,23 @@ export default function LoginPage() {
                     onSubmit={form.handleSubmit(onSubmit)}
                     className="space-y-5"
                   >
-                    {/* Username */}
+                    {/* Email */}
                     <FormField
                       control={form.control}
-                      name="username"
+                      name="email"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-base text-purple-700">
-                            Username
+                            Email
                           </FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-500 h-5 w-5" />
                               <Input
-                                type="text"
-                                placeholder="Enter your username"
+                                type="email"
+                                placeholder="Enter your email"
                                 className="h-12 pl-10 rounded-xl text-base border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all"
-                                autoComplete="username"
+                                autoComplete="email"
                                 {...field}
                               />
                             </div>
