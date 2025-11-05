@@ -19,7 +19,7 @@ interface ErrorResponse {
   error: string;
 }
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api';
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
 export async function login(data: LoginRequest): Promise<LoginResponse> {
   try {
