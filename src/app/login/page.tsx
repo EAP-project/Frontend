@@ -19,6 +19,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/api";
+import { decodeToken, getTokenRole } from "@/lib/jwt";
 
 // Schema for login - updated to use email instead of username
 const loginSchema = z.object({
@@ -29,21 +30,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 // Response types matching backend
-interface LoginResponse {
-  message: string;
-  username: string;
-  email: string;
-  role: string;
-  firstName: string;
-  lastName: string;
-  phoneNumber: string;
-  token: string;
-  tokenType: string;
-}
-
-interface ErrorResponse {
-  error: string;
-}
+// using types from api and types/auth where applicable
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -66,32 +53,47 @@ export default function LoginPage() {
       const loginResponse = await login(data);
       console.log("Login successful:", loginResponse);
 
-      // Store token in localStorage
-      localStorage.setItem("token", loginResponse.token);
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          username: loginResponse.username,
-          email: loginResponse.email,
-          role: loginResponse.role,
-          firstName: loginResponse.firstName,
-          lastName: loginResponse.lastName,
-          phoneNumber: loginResponse.phoneNumber,
-        })
-      );
+      const token = loginResponse.token;
+      if (token) {
+        localStorage.setItem("token", token);
+      }
 
-      // Redirect to dashboard or home page
-      router.push("/dashboard");
-    } catch (error: any) {
-      console.error("Login error:", error);
-      if (error.message === "Failed to fetch") {
-        setError(
-          "Unable to connect to server. Please check if the server is running."
-        );
+      // Prefer decoding token to read role; fallback to response.role
+      const payload = token ? decodeToken(token) : null;
+      const roleFromToken = payload ? getTokenRole(token) : loginResponse.role;
+      const roleString = String(roleFromToken || "");
+
+      const userObj = {
+        username: loginResponse.username,
+        email: loginResponse.email,
+        role: roleString,
+        firstName: loginResponse.firstName,
+        lastName: loginResponse.lastName,
+        phoneNumber: loginResponse.phoneNumber,
+      };
+
+      localStorage.setItem("user", JSON.stringify(userObj));
+
+      // route based on role (handle common role naming variants)
+      const roleUpper = roleString.toUpperCase();
+      if (roleUpper.includes("ADMIN")) {
+        router.push("/dashboard/admin");
+      } else if (roleUpper.includes("EMPLOYEE") || roleUpper.includes("TECHNICIAN") || roleUpper.includes("SUPERVISOR") || roleUpper.includes("MANAGER")) {
+        // treat these as employee/worker roles
+        router.push("/dashboard/employee");
       } else {
-        setError(
-          error.message || "An unexpected error occurred. Please try again."
-        );
+        router.push("/dashboard/customer");
+      }
+    } catch (error: unknown) {
+      console.error("Login error:", error);
+      if (error instanceof Error) {
+        if (error.message === "Failed to fetch") {
+          setError("Unable to connect to server. Please check if the server is running.");
+        } else {
+          setError(error.message || "An unexpected error occurred. Please try again.");
+        }
+      } else {
+        setError(String(error));
       }
     } finally {
       setIsLoading(false);
@@ -282,7 +284,7 @@ export default function LoginPage() {
 
               {/* Sign Up Link */}
               <p className="text-center text-purple-600 mt-8">
-                Don't have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <Link
                   href="/signup"
                   className="font-semibold hover:text-purple-800 transition-colors"
