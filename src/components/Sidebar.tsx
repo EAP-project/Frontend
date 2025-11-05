@@ -2,16 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  Car, 
-  Calendar, 
-  FileText, 
+import {
+  LayoutDashboard,
+  Car,
+  Calendar,
+  FileText,
   Settings,
   LogOut,
   User,
   Users,
-  Wrench
+  Wrench,
 } from "lucide-react";
 import { Button } from "./ui/Button";
 import { useRouter } from "next/navigation";
@@ -184,4 +184,3 @@ export function Sidebar({ role, user }: SidebarProps) {
 }
 
 export default Sidebar;
-

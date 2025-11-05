@@ -30,7 +30,9 @@ import {
 const appointmentSchema = z.object({
   vehicleId: z.number().min(1, "Please select a vehicle"),
   serviceId: z.number().min(1, "Please select a service"),
-  appointmentDateTime: z.string().min(1, "Appointment date and time are required"),
+  appointmentDateTime: z
+    .string()
+    .min(1, "Appointment date and time are required"),
   customerNotes: z.string().optional(),
 });
 
@@ -66,7 +68,7 @@ export default function AddAppointmentPage() {
         console.log("Services:", servicesData);
         setVehicles(vehiclesData);
         setServices(servicesData);
-        
+
         if (servicesData.length === 0) {
           setError("No services available. Please contact the administrator.");
         }
@@ -100,11 +102,15 @@ export default function AddAppointmentPage() {
       await createAppointment(appointmentData);
 
       // Redirect back to customer dashboard
-      router.push("/dashboard/customer?success=Appointment booked successfully");
+      router.push(
+        "/dashboard/customer?success=Appointment booked successfully"
+      );
     } catch (err: unknown) {
       console.error("Error booking appointment:", err);
       if (err instanceof Error) {
-        setError(err.message || "Failed to book appointment. Please try again.");
+        setError(
+          err.message || "Failed to book appointment. Please try again."
+        );
       } else {
         setError(String(err));
       }
@@ -169,8 +175,8 @@ export default function AddAppointmentPage() {
         {vehicles.length === 0 && !loadingData && (
           <Card className="p-6 mb-6 bg-yellow-50 border border-yellow-200">
             <p className="text-yellow-800 mb-3">
-              You don&apos;t have any vehicles registered yet. Please add a vehicle
-              first.
+              You don&apos;t have any vehicles registered yet. Please add a
+              vehicle first.
             </p>
             <Button
               asChild
@@ -185,7 +191,8 @@ export default function AddAppointmentPage() {
         {services.length === 0 && !loadingData && vehicles.length > 0 && (
           <Card className="p-6 mb-6 bg-orange-50 border border-orange-200">
             <p className="text-orange-800">
-              No services are currently available. Please contact support or try again later.
+              No services are currently available. Please contact support or try
+              again later.
             </p>
           </Card>
         )}
@@ -194,12 +201,14 @@ export default function AddAppointmentPage() {
         {services.length > 0 && (
           <Card className="p-4 mb-6 bg-blue-50 border border-blue-200">
             <p className="text-blue-900 font-semibold mb-2">
-              ✓ {services.length} service{services.length !== 1 ? 's' : ''} available:
+              ✓ {services.length} service{services.length !== 1 ? "s" : ""}{" "}
+              available:
             </p>
             <ul className="text-sm text-gray-800 space-y-1 list-disc list-inside">
               {services.map((service) => (
                 <li key={service.id} className="text-gray-900">
-                  {service.serviceName} {service.price ? `- $${service.price}` : ''}
+                  {service.serviceName}{" "}
+                  {service.price ? `- $${service.price}` : ""}
                 </li>
               ))}
             </ul>
@@ -231,7 +240,8 @@ export default function AddAppointmentPage() {
                         <option value={0}>Select a vehicle</option>
                         {vehicles.map((vehicle) => (
                           <option key={vehicle.id} value={vehicle.id}>
-                            {vehicle.year} {vehicle.model} ({vehicle.licensePlate})
+                            {vehicle.year} {vehicle.model} (
+                            {vehicle.licensePlate})
                           </option>
                         ))}
                       </select>
@@ -262,7 +272,7 @@ export default function AddAppointmentPage() {
                         {services.map((service) => (
                           <option key={service.id} value={service.id}>
                             {service.serviceName}
-                            {service.price ? ` - $${service.price}` : ''}
+                            {service.price ? ` - $${service.price}` : ""}
                           </option>
                         ))}
                       </select>

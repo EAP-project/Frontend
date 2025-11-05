@@ -16,7 +16,12 @@ import {
 
 export default function EmployeeDashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<{ firstName?: string; lastName?: string; email?: string; role?: string } | null>(null);
+  const [user, setUser] = useState<{
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    role?: string;
+  } | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,14 +86,18 @@ export default function EmployeeDashboard() {
     return aptDate.toDateString() === today.toDateString();
   });
   const pendingTasks = appointments.filter((apt) => apt.status === "PENDING");
-  
-  const todayAppointments = appointments.filter((apt) => {
-    const aptDate = new Date(apt.appointmentDateTime);
-    const today = new Date();
-    return aptDate.toDateString() === today.toDateString();
-  }).sort((a, b) => 
-    new Date(a.appointmentDateTime).getTime() - new Date(b.appointmentDateTime).getTime()
-  );
+
+  const todayAppointments = appointments
+    .filter((apt) => {
+      const aptDate = new Date(apt.appointmentDateTime);
+      const today = new Date();
+      return aptDate.toDateString() === today.toDateString();
+    })
+    .sort(
+      (a, b) =>
+        new Date(a.appointmentDateTime).getTime() -
+        new Date(b.appointmentDateTime).getTime()
+    );
 
   const stats = [
     {
@@ -120,7 +129,7 @@ export default function EmployeeDashboard() {
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       <Sidebar role="employee" />
-      
+
       <main className="flex-1 p-8 ml-64">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
@@ -164,7 +173,9 @@ export default function EmployeeDashboard() {
               Today&apos;s Appointments
             </h3>
             {todayAppointments.length === 0 ? (
-              <p className="text-gray-500">No appointments scheduled for today.</p>
+              <p className="text-gray-500">
+                No appointments scheduled for today.
+              </p>
             ) : (
               <div className="space-y-3">
                 {todayAppointments.map((apt) => (
@@ -175,18 +186,27 @@ export default function EmployeeDashboard() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <p className="text-sm font-semibold text-blue-600">
-                          {new Date(apt.appointmentDateTime).toLocaleTimeString("en-US", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {new Date(apt.appointmentDateTime).toLocaleTimeString(
+                            "en-US",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )}
                         </p>
-                        <p className={`text-xs px-2 py-1 rounded-full ${
-                          apt.status === "CONFIRMED" ? "bg-blue-100 text-blue-700" :
-                          apt.status === "PENDING" ? "bg-yellow-100 text-yellow-700" :
-                          apt.status === "IN_PROGRESS" ? "bg-purple-100 text-purple-700" :
-                          apt.status === "COMPLETED" ? "bg-green-100 text-green-700" :
-                          "bg-gray-100 text-gray-700"
-                        }`}>
+                        <p
+                          className={`text-xs px-2 py-1 rounded-full ${
+                            apt.status === "CONFIRMED"
+                              ? "bg-blue-100 text-blue-700"
+                              : apt.status === "PENDING"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : apt.status === "IN_PROGRESS"
+                              ? "bg-purple-100 text-purple-700"
+                              : apt.status === "COMPLETED"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-gray-100 text-gray-700"
+                          }`}
+                        >
                           {apt.status}
                         </p>
                       </div>
@@ -194,7 +214,8 @@ export default function EmployeeDashboard() {
                         {apt.service?.serviceName || "N/A"}
                       </p>
                       <p className="text-sm text-gray-600">
-                        {apt.vehicle?.model} ({apt.vehicle?.year}) - {apt.vehicle?.licensePlate}
+                        {apt.vehicle?.model} ({apt.vehicle?.year}) -{" "}
+                        {apt.vehicle?.licensePlate}
                       </p>
                     </div>
                   </div>
@@ -223,11 +244,13 @@ export default function EmployeeDashboard() {
                         {apt.service?.serviceName || "N/A"}
                       </p>
                       <p className="text-sm text-gray-600">
-                        {apt.vehicle?.model} ({apt.vehicle?.year}) - {apt.vehicle?.licensePlate}
+                        {apt.vehicle?.model} ({apt.vehicle?.year}) -{" "}
+                        {apt.vehicle?.licensePlate}
                       </p>
                       {apt.employee && (
                         <p className="text-xs text-gray-500">
-                          Assigned to: {apt.employee.firstName} {apt.employee.lastName}
+                          Assigned to: {apt.employee.firstName}{" "}
+                          {apt.employee.lastName}
                         </p>
                       )}
                     </div>
@@ -235,11 +258,15 @@ export default function EmployeeDashboard() {
                       <p className="text-sm font-medium text-gray-900">
                         {new Date(apt.appointmentDateTime).toLocaleDateString()}
                       </p>
-                      <p className={`text-xs px-2 py-1 rounded-full inline-block ${
-                        apt.status === "CONFIRMED" ? "bg-blue-100 text-blue-700" :
-                        apt.status === "IN_PROGRESS" ? "bg-purple-100 text-purple-700" :
-                        "bg-gray-100 text-gray-700"
-                      }`}>
+                      <p
+                        className={`text-xs px-2 py-1 rounded-full inline-block ${
+                          apt.status === "CONFIRMED"
+                            ? "bg-blue-100 text-blue-700"
+                            : apt.status === "IN_PROGRESS"
+                            ? "bg-purple-100 text-purple-700"
+                            : "bg-gray-100 text-gray-700"
+                        }`}
+                      >
                         {apt.status}
                       </p>
                     </div>
@@ -269,7 +296,8 @@ export default function EmployeeDashboard() {
                         {apt.service?.serviceName || "N/A"}
                       </p>
                       <p className="text-sm text-gray-600">
-                        {apt.vehicle?.model} ({apt.vehicle?.year}) - {apt.vehicle?.licensePlate}
+                        {apt.vehicle?.model} ({apt.vehicle?.year}) -{" "}
+                        {apt.vehicle?.licensePlate}
                       </p>
                     </div>
                     <div className="text-right">

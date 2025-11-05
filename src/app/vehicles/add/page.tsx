@@ -57,7 +57,7 @@ export default function AddVehiclePage() {
       };
 
       await createVehicle(vehicleData);
-      
+
       // Redirect back to customer dashboard
       router.push("/dashboard/customer?success=Vehicle added successfully");
     } catch (err: unknown) {
@@ -100,7 +100,9 @@ export default function AddVehiclePage() {
             <div className="p-3 bg-blue-100 rounded-lg">
               <Car className="h-8 w-8 text-blue-600" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">Add New Vehicle</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Add New Vehicle
+            </h1>
           </div>
           <p className="text-gray-600">
             Register a new vehicle to your account for service appointments.

@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getAllAppointments, getAllServices, Appointment, Service } from "@/lib/api";
+import {
+  getAllAppointments,
+  getAllServices,
+  Appointment,
+  Service,
+} from "@/lib/api";
 import Sidebar from "@/components/Sidebar";
 import { Card } from "@/components/ui/card";
 import {
@@ -18,7 +23,12 @@ import {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<{ firstName?: string; lastName?: string; email?: string; role?: string } | null>(null);
+  const [user, setUser] = useState<{
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    role?: string;
+  } | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,10 +89,18 @@ export default function AdminDashboard() {
     );
   }
 
-  const pendingAppointments = appointments.filter((apt) => apt.status === "PENDING");
-  const confirmedAppointments = appointments.filter((apt) => apt.status === "CONFIRMED");
-  const completedAppointments = appointments.filter((apt) => apt.status === "COMPLETED");
-  const cancelledAppointments = appointments.filter((apt) => apt.status === "CANCELLED");
+  const pendingAppointments = appointments.filter(
+    (apt) => apt.status === "PENDING"
+  );
+  const confirmedAppointments = appointments.filter(
+    (apt) => apt.status === "CONFIRMED"
+  );
+  const completedAppointments = appointments.filter(
+    (apt) => apt.status === "COMPLETED"
+  );
+  const cancelledAppointments = appointments.filter(
+    (apt) => apt.status === "CANCELLED"
+  );
   const todayAppointments = appointments.filter((apt) => {
     const aptDate = new Date(apt.appointmentDateTime);
     const today = new Date();
@@ -150,7 +168,7 @@ export default function AdminDashboard() {
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <Sidebar role="admin" />
-      
+
       <main className="flex-1 p-8 ml-64">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
@@ -217,7 +235,9 @@ export default function AdminDashboard() {
               Today&apos;s Appointments
             </h3>
             {todayAppointments.length === 0 ? (
-              <p className="text-gray-500">No appointments scheduled for today.</p>
+              <p className="text-gray-500">
+                No appointments scheduled for today.
+              </p>
             ) : (
               <div className="space-y-3">
                 {todayAppointments.slice(0, 5).map((apt) => (
@@ -230,22 +250,31 @@ export default function AdminDashboard() {
                         {apt.service?.serviceName || "N/A"}
                       </p>
                       <p className="text-sm text-gray-600">
-                        {apt.vehicle?.model} ({apt.vehicle?.year}) - {apt.vehicle?.licensePlate}
+                        {apt.vehicle?.model} ({apt.vehicle?.year}) -{" "}
+                        {apt.vehicle?.licensePlate}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium text-gray-900">
-                        {new Date(apt.appointmentDateTime).toLocaleTimeString("en-US", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {new Date(apt.appointmentDateTime).toLocaleTimeString(
+                          "en-US",
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )}
                       </p>
-                      <p className={`text-xs px-2 py-1 rounded-full inline-block ${
-                        apt.status === "CONFIRMED" ? "bg-blue-100 text-blue-700" :
-                        apt.status === "PENDING" ? "bg-yellow-100 text-yellow-700" :
-                        apt.status === "COMPLETED" ? "bg-green-100 text-green-700" :
-                        "bg-gray-100 text-gray-700"
-                      }`}>
+                      <p
+                        className={`text-xs px-2 py-1 rounded-full inline-block ${
+                          apt.status === "CONFIRMED"
+                            ? "bg-blue-100 text-blue-700"
+                            : apt.status === "PENDING"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : apt.status === "COMPLETED"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-gray-100 text-gray-700"
+                        }`}
+                      >
                         {apt.status}
                       </p>
                     </div>
@@ -274,11 +303,13 @@ export default function AdminDashboard() {
                         {apt.service?.serviceName || "N/A"}
                       </p>
                       <p className="text-sm text-gray-600">
-                        {apt.vehicle?.model} ({apt.vehicle?.year}) - {apt.vehicle?.licensePlate}
+                        {apt.vehicle?.model} ({apt.vehicle?.year}) -{" "}
+                        {apt.vehicle?.licensePlate}
                       </p>
                       {apt.employee && (
                         <p className="text-xs text-gray-500">
-                          Assigned to: {apt.employee.firstName} {apt.employee.lastName}
+                          Assigned to: {apt.employee.firstName}{" "}
+                          {apt.employee.lastName}
                         </p>
                       )}
                     </div>
@@ -286,13 +317,19 @@ export default function AdminDashboard() {
                       <p className="text-sm font-medium text-gray-900">
                         {new Date(apt.appointmentDateTime).toLocaleDateString()}
                       </p>
-                      <p className={`text-xs px-2 py-1 rounded-full inline-block ${
-                        apt.status === "CONFIRMED" ? "bg-blue-100 text-blue-700" :
-                        apt.status === "PENDING" ? "bg-yellow-100 text-yellow-700" :
-                        apt.status === "COMPLETED" ? "bg-green-100 text-green-700" :
-                        apt.status === "CANCELLED" ? "bg-red-100 text-red-700" :
-                        "bg-gray-100 text-gray-700"
-                      }`}>
+                      <p
+                        className={`text-xs px-2 py-1 rounded-full inline-block ${
+                          apt.status === "CONFIRMED"
+                            ? "bg-blue-100 text-blue-700"
+                            : apt.status === "PENDING"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : apt.status === "COMPLETED"
+                            ? "bg-green-100 text-green-700"
+                            : apt.status === "CANCELLED"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-gray-100 text-gray-700"
+                        }`}
+                      >
                         {apt.status}
                       </p>
                     </div>

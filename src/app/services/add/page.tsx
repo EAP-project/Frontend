@@ -19,7 +19,7 @@ import { Card } from "@/components/ui/card";
 import { ArrowLeft, Wrench } from "lucide-react";
 import Link from "next/link";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
 
 const serviceSchema = z.object({
   serviceName: z.string().min(1, "Service name is required"),
@@ -48,24 +48,26 @@ export default function AddServicePage() {
     setError(null);
 
     try {
-      const token = localStorage.getItem('token');
-      
+      const token = localStorage.getItem("token");
+
       if (!token) {
         throw new Error("You must be logged in to add a service");
       }
 
       const response = await fetch(`${API_BASE}/services`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || `Failed to create service: ${response.status}`);
+        throw new Error(
+          errorData?.error || `Failed to create service: ${response.status}`
+        );
       }
 
       // Redirect back to admin dashboard
