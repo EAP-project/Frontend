@@ -2,26 +2,29 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Button } from "@/components/ui/Button";
+import { getAllAppointments, getAllServices, Appointment, Service } from "@/lib/api";
+import Sidebar from "@/components/Sidebar";
 import { Card } from "@/components/ui/card";
 import {
   Users,
   Wrench,
-  BarChart3,
-  Settings,
   Calendar,
-  Shield,
-  LogOut,
   Activity,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  XCircle,
 } from "lucide-react";
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<{ firstName?: string; lastName?: string; email?: string; role?: string } | null>(null);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if user is logged in and has admin role
     const token = localStorage.getItem("token");
     const userStr = localStorage.getItem("user");
 
@@ -33,9 +36,7 @@ export default function AdminDashboard() {
     const userData = JSON.parse(userStr);
     setUser(userData);
 
-    // Verify admin role
     if (!userData.role?.toUpperCase().includes("ADMIN")) {
-      // Redirect to appropriate dashboard based on role
       const role = userData.role?.toUpperCase() || "";
       if (
         role.includes("EMPLOYEE") ||
@@ -47,16 +48,30 @@ export default function AdminDashboard() {
       } else {
         router.push("/dashboard/customer");
       }
+      return;
     }
+
+    loadData();
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    router.push("/login");
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [appointmentsData, servicesData] = await Promise.all([
+        getAllAppointments(),
+        getAllServices(),
+      ]);
+      setAppointments(appointmentsData);
+      setServices(servicesData);
+    } catch (err) {
+      console.error("Failed to load data:", err);
+      setError(err instanceof Error ? err.message : "Failed to load data");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (!user) {
+  if (!user || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Loading...</div>
@@ -64,258 +79,229 @@ export default function AdminDashboard() {
     );
   }
 
+  const pendingAppointments = appointments.filter((apt) => apt.status === "PENDING");
+  const confirmedAppointments = appointments.filter((apt) => apt.status === "CONFIRMED");
+  const completedAppointments = appointments.filter((apt) => apt.status === "COMPLETED");
+  const cancelledAppointments = appointments.filter((apt) => apt.status === "CANCELLED");
+  const todayAppointments = appointments.filter((apt) => {
+    const aptDate = new Date(apt.appointmentDateTime);
+    const today = new Date();
+    return aptDate.toDateString() === today.toDateString();
+  });
+
   const stats = [
     {
-      title: "Total Users",
-      value: "1,248",
-      change: "+12%",
-      icon: <Users className="h-6 w-6 text-blue-600" />,
+      title: "Total Appointments",
+      value: appointments.length.toString(),
+      icon: <Calendar className="h-6 w-6 text-blue-600" />,
       bgColor: "bg-blue-50",
     },
     {
       title: "Active Services",
-      value: "342",
-      change: "+8%",
+      value: services.length.toString(),
       icon: <Wrench className="h-6 w-6 text-green-600" />,
       bgColor: "bg-green-50",
     },
     {
-      title: "Appointments",
-      value: "156",
-      change: "+23%",
-      icon: <Calendar className="h-6 w-6 text-purple-600" />,
+      title: "Today&apos;s Appointments",
+      value: todayAppointments.length.toString(),
+      icon: <Clock className="h-6 w-6 text-purple-600" />,
       bgColor: "bg-purple-50",
     },
     {
-      title: "System Health",
-      value: "98%",
-      change: "+2%",
-      icon: <Activity className="h-6 w-6 text-orange-600" />,
+      title: "Completed",
+      value: completedAppointments.length.toString(),
+      icon: <CheckCircle className="h-6 w-6 text-orange-600" />,
       bgColor: "bg-orange-50",
     },
   ];
 
+  const statusBreakdown = [
+    {
+      status: "Pending",
+      count: pendingAppointments.length,
+      icon: <AlertCircle className="h-5 w-5 text-yellow-600" />,
+      color: "text-yellow-600",
+      bgColor: "bg-yellow-50",
+    },
+    {
+      status: "Confirmed",
+      count: confirmedAppointments.length,
+      icon: <CheckCircle className="h-5 w-5 text-blue-600" />,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+    },
+    {
+      status: "Completed",
+      count: completedAppointments.length,
+      icon: <CheckCircle className="h-5 w-5 text-green-600" />,
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+    },
+    {
+      status: "Cancelled",
+      count: cancelledAppointments.length,
+      icon: <XCircle className="h-5 w-5 text-red-600" />,
+      color: "text-red-600",
+      bgColor: "bg-red-50",
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
-      <nav className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-red-600 to-red-700">
-                <Shield className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">
-                  Admin Dashboard
-                </h1>
-                <p className="text-xs text-gray-500">System Administrator</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-semibold text-gray-900">
-                  {user.firstName} {user.lastName}
-                </p>
-                <p className="text-xs text-gray-500">{user.email}</p>
-              </div>
-              <Button
-                onClick={handleLogout}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-              >
-                <LogOut className="h-4 w-4" />
-                Logout
-              </Button>
-            </div>
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <Sidebar role="admin" />
+      
+      <main className="flex-1 p-8 ml-64">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">
+              Admin Dashboard
+            </h2>
+            <p className="text-gray-600">
+              Welcome back, {user.firstName}! Here\'s your system overview.
+            </p>
           </div>
-        </div>
-      </nav>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, {user.firstName}!
-          </h2>
-          <p className="text-gray-600">
-            Here&apos;s what&apos;s happening with your service center today.
-          </p>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => (
-            <Card
-              key={index}
-              className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-lg ${stat.bgColor}`}>
-                  {stat.icon}
-                </div>
-                <span className="text-sm font-semibold text-green-600">
-                  {stat.change}
-                </span>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-1">
-                {stat.value}
-              </h3>
-              <p className="text-sm text-gray-600">{stat.title}</p>
+          {error && (
+            <Card className="p-4 mb-6 bg-red-50 border-red-200">
+              <p className="text-red-600">{error}</p>
             </Card>
-          ))}
-        </div>
+          )}
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <Card className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 rounded-lg bg-blue-50">
-                <Users className="h-6 w-6 text-blue-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Manage Users
-              </h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">
-              Add, edit, or remove users and manage permissions.
-            </p>
-            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-              Manage Users
-            </Button>
-          </Card>
-
-          <Card className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 rounded-lg bg-green-50">
-                <Wrench className="h-6 w-6 text-green-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Service Management
-              </h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">
-              Add and manage service offerings for customers.
-            </p>
-            <Button asChild className="w-full bg-green-600 hover:bg-green-700 text-white">
-              <Link href="/services/add">Add New Service</Link>
-            </Button>
-          </Card>
-
-          <Card className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 rounded-lg bg-purple-50">
-                <BarChart3 className="h-6 w-6 text-purple-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Analytics & Reports
-              </h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">
-              View detailed analytics and generate reports.
-            </p>
-            <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white">
-              View Analytics
-            </Button>
-          </Card>
-
-          <Card className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 rounded-lg bg-orange-50">
-                <Settings className="h-6 w-6 text-orange-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                System Settings
-              </h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">
-              Configure system-wide settings and preferences.
-            </p>
-            <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white">
-              Settings
-            </Button>
-          </Card>
-
-          <Card className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 rounded-lg bg-red-50">
-                <Calendar className="h-6 w-6 text-red-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Appointments
-              </h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">
-              Manage all customer appointments and schedules.
-            </p>
-            <Button className="w-full bg-red-600 hover:bg-red-700 text-white">
-              View Calendar
-            </Button>
-          </Card>
-
-          <Card className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 rounded-lg bg-indigo-50">
-                <Shield className="h-6 w-6 text-indigo-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Security & Logs
-              </h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">
-              Monitor system security and audit logs.
-            </p>
-            <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
-              View Logs
-            </Button>
-          </Card>
-        </div>
-
-        {/* Recent Activity */}
-        <Card className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">
-            Recent System Activity
-          </h3>
-          <div className="space-y-4">
-            {[
-              {
-                action: "New user registered",
-                user: "John Doe",
-                time: "5 minutes ago",
-              },
-              {
-                action: "Service completed",
-                user: "Jane Smith",
-                time: "15 minutes ago",
-              },
-              {
-                action: "Appointment scheduled",
-                user: "Mike Johnson",
-                time: "1 hour ago",
-              },
-              {
-                action: "System settings updated",
-                user: "Admin",
-                time: "2 hours ago",
-              },
-            ].map((activity, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0"
-              >
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {activity.action}
-                  </p>
-                  <p className="text-xs text-gray-500">{activity.user}</p>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {stats.map((stat, index) => (
+              <Card key={index} className={`p-6 ${stat.bgColor}`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">
+                      {stat.title}
+                    </p>
+                    <p className="text-3xl font-bold text-gray-900">
+                      {stat.value}
+                    </p>
+                  </div>
+                  <div className={stat.bgColor}>{stat.icon}</div>
                 </div>
-                <span className="text-xs text-gray-400">{activity.time}</span>
-              </div>
+              </Card>
             ))}
           </div>
-        </Card>
+
+          {/* Status Breakdown */}
+          <Card className="p-6 mb-8">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Appointment Status Overview
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {statusBreakdown.map((item, index) => (
+                <div key={index} className={`p-4 rounded-lg ${item.bgColor}`}>
+                  <div className="flex items-center gap-3">
+                    {item.icon}
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">
+                        {item.status}
+                      </p>
+                      <p className={`text-2xl font-bold ${item.color}`}>
+                        {item.count}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Today&apos;s Appointments */}
+          <Card className="p-6 mb-8">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Today&apos;s Appointments
+            </h3>
+            {todayAppointments.length === 0 ? (
+              <p className="text-gray-500">No appointments scheduled for today.</p>
+            ) : (
+              <div className="space-y-3">
+                {todayAppointments.slice(0, 5).map((apt) => (
+                  <div
+                    key={apt.id}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">
+                        {apt.service?.serviceName || "N/A"}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {apt.vehicle?.model} ({apt.vehicle?.year}) - {apt.vehicle?.licensePlate}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-900">
+                        {new Date(apt.appointmentDateTime).toLocaleTimeString("en-US", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                      <p className={`text-xs px-2 py-1 rounded-full inline-block ${
+                        apt.status === "CONFIRMED" ? "bg-blue-100 text-blue-700" :
+                        apt.status === "PENDING" ? "bg-yellow-100 text-yellow-700" :
+                        apt.status === "COMPLETED" ? "bg-green-100 text-green-700" :
+                        "bg-gray-100 text-gray-700"
+                      }`}>
+                        {apt.status}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          {/* Recent Appointments */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Recent Appointments
+            </h3>
+            {appointments.length === 0 ? (
+              <p className="text-gray-500">No appointments found.</p>
+            ) : (
+              <div className="space-y-3">
+                {appointments.slice(0, 10).map((apt) => (
+                  <div
+                    key={apt.id}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">
+                        {apt.service?.serviceName || "N/A"}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {apt.vehicle?.model} ({apt.vehicle?.year}) - {apt.vehicle?.licensePlate}
+                      </p>
+                      {apt.employee && (
+                        <p className="text-xs text-gray-500">
+                          Assigned to: {apt.employee.firstName} {apt.employee.lastName}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-900">
+                        {new Date(apt.appointmentDateTime).toLocaleDateString()}
+                      </p>
+                      <p className={`text-xs px-2 py-1 rounded-full inline-block ${
+                        apt.status === "CONFIRMED" ? "bg-blue-100 text-blue-700" :
+                        apt.status === "PENDING" ? "bg-yellow-100 text-yellow-700" :
+                        apt.status === "COMPLETED" ? "bg-green-100 text-green-700" :
+                        apt.status === "CANCELLED" ? "bg-red-100 text-red-700" :
+                        "bg-gray-100 text-gray-700"
+                      }`}>
+                        {apt.status}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
       </main>
     </div>
   );

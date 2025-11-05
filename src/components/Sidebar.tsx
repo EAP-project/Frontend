@@ -14,6 +14,7 @@ import {
   Wrench
 } from "lucide-react";
 import { Button } from "./ui/Button";
+import { useRouter } from "next/navigation";
 
 interface NavItem {
   label: string;
@@ -23,7 +24,6 @@ interface NavItem {
 
 interface SidebarProps {
   role: "customer" | "admin" | "employee";
-  onLogout: () => void;
   user?: {
     firstName?: string;
     lastName?: string;
@@ -110,9 +110,16 @@ const navItems: Record<string, NavItem[]> = {
   ],
 };
 
-export function Sidebar({ role, onLogout, user }: SidebarProps) {
+export function Sidebar({ role, user }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const items = navItems[role] || [];
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    router.push("/login");
+  };
 
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0">
@@ -164,7 +171,7 @@ export function Sidebar({ role, onLogout, user }: SidebarProps) {
           </div>
         )}
         <Button
-          onClick={onLogout}
+          onClick={handleLogout}
           variant="outline"
           className="w-full gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
         >
@@ -175,3 +182,6 @@ export function Sidebar({ role, onLogout, user }: SidebarProps) {
     </aside>
   );
 }
+
+export default Sidebar;
+

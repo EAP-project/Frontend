@@ -261,3 +261,28 @@ export async function getMyAppointments(): Promise<Appointment[]> {
 
   return await response.json();
 }
+
+// Get all appointments (for admin/employee)
+export async function getAllAppointments(status?: string): Promise<Appointment[]> {
+  const token = localStorage.getItem('token');
+  const url = status 
+    ? `${API_BASE}/appointments?status=${status}` 
+    : `${API_BASE}/appointments`;
+  console.log('Fetching all appointments from:', url); // Debug log
+  
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}

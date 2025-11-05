@@ -47,19 +47,13 @@ export default function CustomerDashboard() {
     initDashboard();
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    router.push("/login");
-  };
-
   if (!user) return <div className="min-h-screen flex items-center justify-center"><div>Loading...</div></div>;
 
   const upcomingAppointments = appointments.filter((apt) => apt.status !== "COMPLETED" && apt.status !== "CANCELLED");
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar role="customer" onLogout={handleLogout} user={user} />
+      <Sidebar role="customer" user={user} />
       <main className="flex-1 overflow-y-auto p-8">
         <h1 className="text-3xl font-bold mb-8">Welcome, {user.firstName}!</h1>
         <div className="grid gap-6 md:grid-cols-2">
