@@ -66,7 +66,7 @@ export default function LoginPage() {
       const loginResponse = await login(data);
       console.log("Login successful:", loginResponse);
 
-      // Store token in localStorage
+      // Store token & user info in localStorage
       localStorage.setItem("token", loginResponse.token);
       localStorage.setItem(
         "user",
@@ -80,8 +80,16 @@ export default function LoginPage() {
         })
       );
 
-      // Redirect to dashboard or home page
-      router.push("/dashboard");
+      // Redirect based on role (fallback to /dashboard)
+      const roleMap: Record<string, string> = {
+        admin: "/admin/dashboard",
+        employee: "/employee/dashboard",
+        customer: "/dashboard",
+      };
+      const roleKey = (loginResponse.role || "").toLowerCase();
+      const redirectTo = roleMap[roleKey] ?? "/dashboard";
+
+      router.push(redirectTo);
     } catch (error: any) {
       console.error("Login error:", error);
       if (error.message === "Failed to fetch") {
