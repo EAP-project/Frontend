@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/card";
 import {
@@ -17,7 +18,7 @@ import {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ firstName?: string; lastName?: string; email?: string; role?: string } | null>(null);
 
   useEffect(() => {
     // Check if user is logged in and has admin role
@@ -196,10 +197,10 @@ export default function AdminDashboard() {
               </h3>
             </div>
             <p className="text-sm text-gray-600 mb-4">
-              Oversee all ongoing services and assignments.
+              Add and manage service offerings for customers.
             </p>
-            <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
-              View Services
+            <Button asChild className="w-full bg-green-600 hover:bg-green-700 text-white">
+              <Link href="/services/add">Add New Service</Link>
             </Button>
           </Card>
 

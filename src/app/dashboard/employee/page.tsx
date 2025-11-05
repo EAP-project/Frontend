@@ -17,7 +17,7 @@ import {
 
 export default function EmployeeDashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ firstName?: string; lastName?: string; email?: string; role?: string } | null>(null);
 
   useEffect(() => {
     // Check if user is logged in and has employee role
