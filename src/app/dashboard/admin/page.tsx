@@ -36,7 +36,12 @@ export default function AdminDashboard() {
     if (!userData.role?.toUpperCase().includes("ADMIN")) {
       // Redirect to appropriate dashboard based on role
       const role = userData.role?.toUpperCase() || "";
-      if (role.includes("EMPLOYEE") || role.includes("TECHNICIAN") || role.includes("SUPERVISOR") || role.includes("MANAGER")) {
+      if (
+        role.includes("EMPLOYEE") ||
+        role.includes("TECHNICIAN") ||
+        role.includes("SUPERVISOR") ||
+        role.includes("MANAGER")
+      ) {
         router.push("/dashboard/employee");
       } else {
         router.push("/dashboard/customer");
@@ -100,7 +105,9 @@ export default function AdminDashboard() {
                 <Shield className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
+                <h1 className="text-xl font-bold text-gray-900">
+                  Admin Dashboard
+                </h1>
                 <p className="text-xs text-gray-500">System Administrator</p>
               </div>
             </div>

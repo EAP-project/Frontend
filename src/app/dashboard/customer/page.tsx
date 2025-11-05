@@ -303,7 +303,9 @@ export default function CustomerDashboard() {
                     <p className="text-sm font-medium text-gray-900 mb-1">
                       {appointment.service}
                     </p>
-                    <p className="text-xs text-gray-600">{appointment.vehicle}</p>
+                    <p className="text-xs text-gray-600">
+                      {appointment.vehicle}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -336,7 +338,9 @@ export default function CustomerDashboard() {
                       <p className="text-sm font-semibold text-gray-900">
                         {vehicle.year} {vehicle.make} {vehicle.model}
                       </p>
-                      <p className="text-xs text-gray-600">VIN: {vehicle.vin}</p>
+                      <p className="text-xs text-gray-600">
+                        VIN: {vehicle.vin}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between text-xs text-gray-500 mt-3">

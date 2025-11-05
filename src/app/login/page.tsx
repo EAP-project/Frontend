@@ -78,7 +78,12 @@ export default function LoginPage() {
       const roleUpper = roleString.toUpperCase();
       if (roleUpper.includes("ADMIN")) {
         router.push("/dashboard/admin");
-      } else if (roleUpper.includes("EMPLOYEE") || roleUpper.includes("TECHNICIAN") || roleUpper.includes("SUPERVISOR") || roleUpper.includes("MANAGER")) {
+      } else if (
+        roleUpper.includes("EMPLOYEE") ||
+        roleUpper.includes("TECHNICIAN") ||
+        roleUpper.includes("SUPERVISOR") ||
+        roleUpper.includes("MANAGER")
+      ) {
         // treat these as employee/worker roles
         router.push("/dashboard/employee");
       } else {
@@ -88,9 +93,13 @@ export default function LoginPage() {
       console.error("Login error:", error);
       if (error instanceof Error) {
         if (error.message === "Failed to fetch") {
-          setError("Unable to connect to server. Please check if the server is running.");
+          setError(
+            "Unable to connect to server. Please check if the server is running."
+          );
         } else {
-          setError(error.message || "An unexpected error occurred. Please try again.");
+          setError(
+            error.message || "An unexpected error occurred. Please try again."
+          );
         }
       } else {
         setError(String(error));

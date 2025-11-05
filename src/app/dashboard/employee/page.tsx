@@ -260,9 +260,7 @@ export default function EmployeeDashboard() {
 
         {/* Active Jobs */}
         <Card className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">
-            Active Jobs
-          </h3>
+          <h3 className="text-xl font-bold text-gray-900 mb-4">Active Jobs</h3>
           <div className="space-y-4">
             {[
               {

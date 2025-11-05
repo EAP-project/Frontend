@@ -105,7 +105,10 @@ export default function SignUpPage() {
       router.push("/login?message=Registration successful. Please login.");
     } catch (err: unknown) {
       console.error("Registration error:", err);
-      if (err instanceof Error) setError(err.message || "Failed to connect to server. Please try again.");
+      if (err instanceof Error)
+        setError(
+          err.message || "Failed to connect to server. Please try again."
+        );
       else setError(String(err));
     } finally {
       setIsLoading(false);
