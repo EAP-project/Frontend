@@ -50,7 +50,8 @@ const formSchema = z
     phoneNumber: z
       .string()
       .regex(/^\d{10,15}$/, "Phone number must be between 10 and 15 digits"),
-    role: z.enum(["MANAGER", "CUSTOMER", "SUPERVISOR", "TECHNICIAN"])
+    role: z
+      .enum(["MANAGER", "CUSTOMER", "SUPERVISOR", "TECHNICIAN"])
       .describe("Please select a role"),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -98,13 +99,16 @@ export default function SignUpPage() {
     setError(null);
 
     try {
-      const response = await fetch("http://localhost:8080/api/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/register`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        }
+      );
 
       const result = await response.json();
 
