@@ -108,12 +108,12 @@ export default function ServicesPage() {
                     </div>
                     <div className="flex-1">
                       <h3 className="text-lg font-bold text-gray-900 mb-1">
-                        {service.serviceName}
+                        {service.name}
                       </h3>
                       <div className="flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-green-600" />
                         <span className="text-2xl font-bold text-green-600">
-                          {service.price ? service.price.toFixed(2) : "N/A"}
+                          {service.estimatedCost ? service.estimatedCost.toFixed(2) : "N/A"}
                         </span>
                       </div>
                     </div>
