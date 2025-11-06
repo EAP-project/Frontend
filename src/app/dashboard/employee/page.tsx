@@ -302,7 +302,7 @@ export default function EmployeeDashboard() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm font-medium text-gray-900">
-                            {appointment.service?.serviceName || "N/A"}
+                            {appointment.service?.name || "N/A"}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -480,8 +480,16 @@ export default function EmployeeDashboard() {
               onClick={closeModal}
             ></div>
 
+            {/* This element is to trick the browser into centering the modal contents. */}
+            <span
+              className="hidden sm:inline-block sm:align-middle sm:h-screen"
+              aria-hidden="true"
+            >
+              &#8203;
+            </span>
+
             {/* Modal panel */}
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
+            <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full z-50">
               {/* Header */}
               <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
                 <div className="flex items-center justify-between">
@@ -566,7 +574,7 @@ export default function EmployeeDashboard() {
                         Service Name
                       </label>
                       <p className="text-sm font-medium text-gray-900">
-                        {selectedAppointment.service?.serviceName || "N/A"}
+                        {selectedAppointment.service?.name || "N/A"}
                       </p>
                     </div>
 
