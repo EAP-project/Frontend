@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getMyAppointments, Appointment } from "@/lib/api";
+import { getMyAppointments, getMyVehicles, Appointment, Vehicle } from "@/lib/api";
 import Sidebar from "@/components/Sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/Button";
@@ -28,6 +28,7 @@ export default function AppointmentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("all");
+  const [vehicleError, setVehicleError] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -48,7 +49,119 @@ export default function AppointmentsPage() {
     try {
       setLoading(true);
       const appointmentsData = await getMyAppointments();
-      setAppointments(appointmentsData);
+      console.debug("Loaded appointments:", appointmentsData);
+
+      // If vehicle details are missing from appointments, try to fetch user's vehicles
+      let finalAppointments = appointmentsData;
+      const needsVehicleResolve = appointmentsData.some((a) => {
+        const v = a.vehicle as unknown;
+        if (!v) return true;
+        if (typeof v === "object") return !("model" in (v as object));
+        return true;
+      });
+
+      if (needsVehicleResolve) {
+          try {
+          const tokenSample = localStorage.getItem("token");
+          console.debug("Token present for vehicle fetch:", !!tokenSample, tokenSample ? `${tokenSample.slice(0,10)}...${tokenSample.slice(-10)}` : null);
+          const vehicles = await getMyVehicles();
+          console.debug("Fetched user vehicles for mapping:", vehicles);
+          if (!vehicles || vehicles.length === 0) {
+            setVehicleError("No vehicles returned from /api/vehicles. Check JWT/token in localStorage.");
+          } else {
+            setVehicleError(null);
+          }
+
+          finalAppointments = appointmentsData.map((a) => {
+            const vc = (a as unknown as { vehicle?: unknown }).vehicle;
+            let vehicleId: number | null = null;
+
+            if (vc == null) {
+              const maybeVehicleIdField = (a as unknown as { vehicleId?: unknown }).vehicleId;
+              if (maybeVehicleIdField != null) {
+                const n = Number(maybeVehicleIdField);
+                vehicleId = Number.isNaN(n) ? null : n;
+              }
+            } else if (typeof vc === "number") {
+              vehicleId = vc;
+            } else if (typeof vc === "object") {
+              const maybe = ((vc as unknown as { id?: unknown }).id) ?? (a as unknown as { vehicleId?: unknown }).vehicleId;
+              if (maybe != null) {
+                const n = Number(maybe);
+                vehicleId = Number.isNaN(n) ? null : n;
+              }
+            }
+
+            let resolvedVehicle: Vehicle | null = null;
+            if (vehicleId != null) {
+              resolvedVehicle = vehicles.find((v) => v.id === vehicleId) ?? null;
+            }
+
+            // Fallback matching: if we couldn't resolve by id, try licensePlate and model/year
+            if (!resolvedVehicle) {
+              const apptVehicleObj = vc && typeof vc === "object" ? (vc as unknown as { licensePlate?: unknown; model?: unknown; year?: unknown }) : null;
+
+              // Try licensePlate matches (normalize spaces/case)
+              const apptLicense = apptVehicleObj?.licensePlate ?? (a as unknown as { licensePlate?: unknown }).licensePlate ?? (a as unknown as { plate?: unknown }).plate ?? (a as unknown as { plateNumber?: unknown }).plateNumber ?? null;
+              if (apptLicense != null) {
+                const lp = String(apptLicense).trim().replace(/\s+/g, "").toLowerCase();
+                const foundByPlate = vehicles.find((v) => (v.licensePlate ?? "").toString().replace(/\s+/g, "").toLowerCase() === lp);
+                if (foundByPlate) {
+                  resolvedVehicle = foundByPlate;
+                  console.debug("Fallback matched vehicle by licensePlate", { appointmentId: (a as unknown as { id?: unknown }).id, apptLicense, matchedId: foundByPlate.id });
+                }
+              }
+
+              // Try model + (optional) year matches
+              if (!resolvedVehicle) {
+                const apptModel = apptVehicleObj?.model ?? (a as unknown as { vehicleModel?: unknown }).vehicleModel ?? (a as unknown as { model?: unknown }).model ?? null;
+                const apptYear = apptVehicleObj?.year ?? (a as unknown as { vehicleYear?: unknown }).vehicleYear ?? null;
+                if (apptModel != null) {
+                  const m = String(apptModel).trim().toLowerCase();
+                  const y = apptYear != null ? Number(apptYear) : null;
+                  const foundByModel = vehicles.find((v) => v.model?.toString().trim().toLowerCase() === m && (y == null || v.year === y));
+                  if (foundByModel) {
+                    resolvedVehicle = foundByModel;
+                    console.debug("Fallback matched vehicle by model/year", { appointmentId: (a as unknown as { id?: unknown }).id, apptModel, apptYear, matchedId: foundByModel.id });
+                  }
+                }
+              }
+            }
+
+            // Detailed debug per appointment to help troubleshoot mapping
+            console.debug("Appointment mapping:", {
+              appointmentId: (a as unknown as { id?: unknown }).id,
+              appointmentVehicleRaw: vc,
+              resolvedVehicleId: vehicleId,
+              matchedVehicle: resolvedVehicle,
+            });
+
+            // If we didn't resolve by id but appointment already had a full vehicle object, keep it
+            if (!resolvedVehicle && vc && typeof vc === "object" && (vc as unknown as { model?: unknown }).model) {
+              resolvedVehicle = vc as Vehicle;
+            }
+
+            // Final fallback: an explicit "Unknown" vehicle so UI shows clear placeholders
+            if (!resolvedVehicle) {
+              resolvedVehicle = {
+                id: vehicleId ?? -1,
+                model: "Unknown",
+                year: 0,
+                licensePlate: "Unknown",
+              } as Vehicle;
+              // record that we couldn't resolve this specific appointment
+              console.warn(`Could not resolve vehicle for appointment ${(a as unknown as { id?: unknown }).id}: vehicleId=${vehicleId}`);
+            }
+
+            return { ...a, vehicle: resolvedVehicle };
+          });
+        } catch (vehErr) {
+          console.warn("Could not fetch vehicles to enrich appointments:", vehErr);
+          // proceed with original appointmentsData
+        }
+      }
+
+  setAppointments(finalAppointments as Appointment[]);
     } catch (err) {
       console.error("Failed to load appointments:", err);
       setError(
@@ -101,11 +214,10 @@ export default function AppointmentsPage() {
     if (filter === "all") return true;
     return apt.status === filter.toUpperCase();
   });
-
   const upcomingCount = appointments.filter(
     (apt) => apt.status !== "COMPLETED" && apt.status !== "CANCELLED"
   ).length;
-
+  
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar role="customer" user={user} />
@@ -119,9 +231,7 @@ export default function AppointmentsPage() {
                 <Calendar className="h-8 w-8 text-blue-600" />
                 My Appointments
               </h1>
-              <p className="text-gray-600 mt-2">
-                Track and manage your service appointments
-              </p>
+              <p className="text-gray-600 mt-2">Track and manage your service appointments</p>
             </div>
             <Link href="/appointments/add">
               <Button className="gap-2">
@@ -137,9 +247,7 @@ export default function AppointmentsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-blue-600 font-medium">Total</p>
-                  <p className="text-2xl font-bold text-blue-900">
-                    {appointments.length}
-                  </p>
+                  <p className="text-2xl font-bold text-blue-900">{appointments.length}</p>
                 </div>
                 <Calendar className="h-8 w-8 text-blue-600" />
               </div>
@@ -147,12 +255,8 @@ export default function AppointmentsPage() {
             <Card className="p-4 bg-yellow-50 border-yellow-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-yellow-600 font-medium">
-                    Upcoming
-                  </p>
-                  <p className="text-2xl font-bold text-yellow-900">
-                    {upcomingCount}
-                  </p>
+                  <p className="text-sm text-yellow-600 font-medium">Upcoming</p>
+                  <p className="text-2xl font-bold text-yellow-900">{upcomingCount}</p>
                 </div>
                 <Clock className="h-8 w-8 text-yellow-600" />
               </div>
@@ -160,15 +264,8 @@ export default function AppointmentsPage() {
             <Card className="p-4 bg-green-50 border-green-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-green-600 font-medium">
-                    Completed
-                  </p>
-                  <p className="text-2xl font-bold text-green-900">
-                    {
-                      appointments.filter((a) => a.status === "COMPLETED")
-                        .length
-                    }
-                  </p>
+                  <p className="text-sm text-green-600 font-medium">Completed</p>
+                  <p className="text-2xl font-bold text-green-900">{appointments.filter((a) => a.status === "COMPLETED").length}</p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-600" />
               </div>
@@ -177,12 +274,7 @@ export default function AppointmentsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-red-600 font-medium">Cancelled</p>
-                  <p className="text-2xl font-bold text-red-900">
-                    {
-                      appointments.filter((a) => a.status === "CANCELLED")
-                        .length
-                    }
-                  </p>
+                  <p className="text-2xl font-bold text-red-900">{appointments.filter((a) => a.status === "CANCELLED").length}</p>
                 </div>
                 <XCircle className="h-8 w-8 text-red-600" />
               </div>
@@ -236,6 +328,12 @@ export default function AppointmentsPage() {
             </Card>
           )}
 
+          {vehicleError && (
+            <Card className="p-4 mb-6 bg-yellow-50 border-yellow-200">
+              <p className="text-yellow-700">{vehicleError}</p>
+            </Card>
+          )}
+
           {/* Appointments List */}
           {loading ? (
             <div className="flex items-center justify-center py-12">
@@ -277,7 +375,7 @@ export default function AppointmentsPage() {
                       <div className="flex items-center gap-3 mb-3">
                         {getStatusIcon(appointment.status || "")}
                         <h3 className="text-lg font-bold text-gray-900">
-                          {appointment.service?.serviceName || "N/A"}
+                          {appointment.service?.serviceName || appointment.service?.name || "N/A"}
                         </h3>
                         <span
                           className={`text-xs px-3 py-1 rounded-full font-medium ${getStatusColor(
@@ -314,18 +412,23 @@ export default function AppointmentsPage() {
                         <div>
                           <p className="text-sm text-gray-600">Vehicle</p>
                           <p className="font-medium text-gray-900">
-                            {appointment.vehicle?.model} (
-                            {appointment.vehicle?.year})
+                            {appointment.vehicle?.model ?? "Unknown"} (
+                            {appointment.vehicle?.year ? appointment.vehicle.year : "Unknown"})
                           </p>
                           <p className="text-sm text-gray-700">
-                            {appointment.vehicle?.licensePlate}
+                            {appointment.vehicle?.licensePlate ?? "Unknown"}
                           </p>
                         </div>
 
                         <div>
                           <p className="text-sm text-gray-600">Service Price</p>
                           <p className="font-medium text-gray-900">
-                            ${appointment.service?.price?.toFixed(2) || "N/A"}
+                            {
+                              (() => {
+                                const price = appointment.service?.price ?? appointment.service?.estimatedCost;
+                                return price != null ? `$${Number(price).toFixed(2)}` : "N/A";
+                              })()
+                            }
                           </p>
                         </div>
                       </div>

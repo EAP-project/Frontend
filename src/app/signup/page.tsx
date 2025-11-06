@@ -67,6 +67,7 @@ type SignUpFormValues = z.infer<typeof formSchema>;
 export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const router = useRouter();
 
   const form = useForm<SignUpFormValues>({
@@ -101,8 +102,13 @@ export default function SignUpPage() {
       const registrationResponse = await register(payload);
       console.log("Registration successful:", registrationResponse);
 
-      // Redirect to login page with message
-      router.push("/login?message=Registration successful. Please login.");
+      // Show success state
+      setSuccess(true);
+
+      // Redirect to login page after 3 seconds
+      setTimeout(() => {
+        router.push("/login");
+      }, 3000);
     } catch (err: unknown) {
       console.error("Registration error:", err);
       if (err instanceof Error)
@@ -114,6 +120,62 @@ export default function SignUpPage() {
       setIsLoading(false);
     }
   };
+
+  // If registration is successful, show success message
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-4">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8">
+          <div className="text-center">
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <svg
+                className="w-8 h-8 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M5 13l4 4L19 7"
+                ></path>
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">
+              Registration Successful!
+            </h1>
+            <p className="text-gray-600 mb-4">
+              Your account has been created successfully.
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <Mail className="h-5 w-5 text-blue-600 mt-0.5" />
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-blue-800 mb-1">
+                    Verify Your Email
+                  </p>
+                  <p className="text-sm text-blue-700">
+                    We've sent a verification link to your email address. Please
+                    check your inbox and verify your account before logging in.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              Redirecting to login page in 3 seconds...
+            </p>
+            <Link
+              href="/login"
+              className="inline-block bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Go to Login
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
