@@ -348,3 +348,89 @@ export async function getAllAppointments(status?: string): Promise<Appointment[]
 
   return await response.json();
 }
+
+// Email verification API
+export async function verifyEmail(token: string): Promise<string> {
+  const response = await fetch(`${API_BASE}/verify-email?token=${token}`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.text();
+}
+
+// Forgot password API
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export async function forgotPassword(data: ForgotPasswordRequest): Promise<string> {
+  const response = await fetch(`${API_BASE}/forgot-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify(data),
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.text();
+}
+
+// Reset password API
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+export async function resetPassword(data: ResetPasswordRequest): Promise<string> {
+  const response = await fetch(`${API_BASE}/reset-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify(data),
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.text();
+}
+
+// Validate reset password token
+export async function validateResetToken(token: string): Promise<string> {
+  const response = await fetch(`${API_BASE}/reset-password?token=${token}`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.text();
+}
+
