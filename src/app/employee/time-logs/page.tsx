@@ -103,10 +103,13 @@ export default function TimeLogsPage() {
 
     timeLogs.forEach((log) => {
       if (log.endTime) {
-        // Completed log
-        totalSeconds += (log.durationMinutes || 0) * 60;
+        // Completed log - calculate from start and end times
+        const startTime = new Date(log.startTime);
+        const endTime = new Date(log.endTime);
+        const diffMs = endTime.getTime() - startTime.getTime();
+        totalSeconds += Math.floor(diffMs / 1000);
       } else {
-        // Ongoing log
+        // Ongoing log - calculate from start time to now
         const startTime = new Date(log.startTime);
         const diffMs = currentTime.getTime() - startTime.getTime();
         totalSeconds += Math.floor(diffMs / 1000);
