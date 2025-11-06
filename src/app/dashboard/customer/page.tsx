@@ -154,7 +154,7 @@ export default function CustomerDashboard() {
                         className="p-3 border rounded hover:bg-gray-50 transition-colors"
                       >
                         <p className="font-bold text-gray-900">
-                          {a.service?.serviceName || "N/A"}
+                          {a.service?.name || "N/A"}
                         </p>
                         <p className="text-sm text-gray-600">
                           {new Date(a.appointmentDateTime).toLocaleDateString(
