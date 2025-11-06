@@ -1,3 +1,5 @@
+import error from "next/error";
+
 interface LoginRequest {
   email: string;
   password: string;
@@ -168,15 +170,12 @@ export async function getMyVehicles(): Promise<Vehicle[]> {
   return await response.json();
 }
 
-// Service APIs
+
+// Update the Service interface to match your backend model
 export interface Service {
   id: number;
-  // Support both backend field names
-  serviceName?: string;
-  name?: string;
+  name: string; // Changed from serviceName to name
   description?: string;
-  // Support both price field names
-  price?: number;
   estimatedCost?: number;
   estimatedDurationMinutes?: number;
   imageUrl?: string;
@@ -187,12 +186,27 @@ export interface Service {
 }
 
 export interface ServiceDTO {
-  name: string;
+  name: string; // Changed from serviceName to name
   description?: string;
   estimatedCost: number;
   estimatedDurationMinutes: number;
   categoryId: number;
 }
+
+// Add this function to get service categories
+export interface ServiceCategory {
+  id: number;
+  name: string;
+  description?: string;
+}
+
+// Service Category APIs
+export interface ServiceCategoryDTO {
+  name: string;
+  description?: string;
+}
+
+
 
 export async function getAllServices(): Promise<Service[]> {
   const token = localStorage.getItem('token');
@@ -230,6 +244,150 @@ export async function createService(serviceData: ServiceDTO, imageFile?: File): 
     headers: {
       'Authorization': `Bearer ${token}`,
       // Don't set Content-Type - let browser set it with boundary for multipart/form-data
+    },
+    body: formData,
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+
+export async function createServiceCategory(data: ServiceCategoryDTO): Promise<ServiceCategory> {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_BASE}/service-categories`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+  
+  return await response.json();
+}
+
+
+
+export async function updateServiceCategory(categoryId: number, data: ServiceCategoryDTO): Promise<ServiceCategory> {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_BASE}/service-categories/${categoryId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+export async function deleteServiceCategory(categoryId: number): Promise<void> {
+  const token = localStorage.getItem('token');
+
+  const response = await fetch(`${API_BASE}/service-categories/${categoryId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+}
+
+// Get single service by ID
+export async function getServiceById(serviceId: number): Promise<Service> {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_BASE}/services/${serviceId}`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+// Get service categories
+export async function getServiceCategories(): Promise<ServiceCategory[]> {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_BASE}/service-categories`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+
+
+
+
+
+
+
+
+// Update service
+export async function updateService(
+  serviceId: number, 
+  serviceData: ServiceDTO, 
+  imageFile?: File
+): Promise<Service> {
+  const token = localStorage.getItem('token');
+  const formData = new FormData();
+  
+  // Add service data as JSON string
+  formData.append('service', JSON.stringify(serviceData));
+  
+  // Add image file if provided
+  if (imageFile) {
+    formData.append('image', imageFile);
+  }
+
+  const response = await fetch(`${API_BASE}/services/${serviceId}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${token}`,
     },
     body: formData,
     mode: 'cors',
