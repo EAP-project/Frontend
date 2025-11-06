@@ -109,7 +109,7 @@ export default function AppointmentDetailsPage() {
 
             <div className="mb-4">
               <p className="text-sm text-gray-600">Service</p>
-              <p className="font-medium text-gray-900">{appointment.service?.serviceName ?? appointment.service?.name ?? 'N/A'}</p>
+              <p className="font-medium text-gray-900">{appointment.service?.name ?? appointment.service?.name ?? 'N/A'}</p>
             </div>
 
             <div className="mb-4">

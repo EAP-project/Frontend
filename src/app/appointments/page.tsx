@@ -375,7 +375,7 @@ export default function AppointmentsPage() {
                       <div className="flex items-center gap-3 mb-3">
                         {getStatusIcon(appointment.status || "")}
                         <h3 className="text-lg font-bold text-gray-900">
-                          {appointment.service?.serviceName || appointment.service?.name || "N/A"}
+                          {appointment.service?.name || appointment.service?.name || "N/A"}
                         </h3>
                         <span
                           className={`text-xs px-3 py-1 rounded-full font-medium ${getStatusColor(
@@ -425,7 +425,7 @@ export default function AppointmentsPage() {
                           <p className="font-medium text-gray-900">
                             {
                               (() => {
-                                const price = appointment.service?.price ?? appointment.service?.estimatedCost;
+                                const price = appointment.service?.estimatedCost ?? appointment.service?.estimatedCost;
                                 return price != null ? `$${Number(price).toFixed(2)}` : "N/A";
                               })()
                             }
