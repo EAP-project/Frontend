@@ -174,6 +174,21 @@ export interface Service {
   serviceName: string;
   description?: string;
   price?: number;
+  estimatedCost?: number;
+  estimatedDurationMinutes?: number;
+  imageUrl?: string;
+  category?: {
+    id: number;
+    name: string;
+  };
+}
+
+export interface ServiceDTO {
+  name: string;
+  description?: string;
+  estimatedCost: number;
+  estimatedDurationMinutes: number;
+  categoryId: number;
 }
 
 export async function getAllServices(): Promise<Service[]> {
@@ -193,6 +208,53 @@ export async function getAllServices(): Promise<Service[]> {
   }
 
   return await response.json();
+}
+
+export async function createService(serviceData: ServiceDTO, imageFile?: File): Promise<Service> {
+  const token = localStorage.getItem('token');
+  const formData = new FormData();
+  
+  // Add service data as JSON string
+  formData.append('service', JSON.stringify(serviceData));
+  
+  // Add image file if provided
+  if (imageFile) {
+    formData.append('image', imageFile);
+  }
+
+  const response = await fetch(`${API_BASE}/services`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      // Don't set Content-Type - let browser set it with boundary for multipart/form-data
+    },
+    body: formData,
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+export async function deleteService(serviceId: number): Promise<void> {
+  const token = localStorage.getItem('token');
+
+  const response = await fetch(`${API_BASE}/services/${serviceId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
 }
 
 // Appointment APIs

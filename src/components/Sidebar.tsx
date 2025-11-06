@@ -71,14 +71,19 @@ const navItems: Record<string, NavItem[]> = {
       icon: <LayoutDashboard className="h-5 w-5" />,
     },
     {
+      label: "Manage Services",
+      href: "/admin/services",
+      icon: <Wrench className="h-5 w-5" />,
+    },
+    {
+      label: "Add Service",
+      href: "/add-service",
+      icon: <Wrench className="h-5 w-5" />,
+    },
+    {
       label: "Users",
       href: "/admin/users",
       icon: <Users className="h-5 w-5" />,
-    },
-    {
-      label: "Services",
-      href: "/services/add",
-      icon: <Wrench className="h-5 w-5" />,
     },
     {
       label: "Appointments",
