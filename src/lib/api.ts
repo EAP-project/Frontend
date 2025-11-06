@@ -171,8 +171,11 @@ export async function getMyVehicles(): Promise<Vehicle[]> {
 // Service APIs
 export interface Service {
   id: number;
-  serviceName: string;
+  // Support both backend field names
+  serviceName?: string;
+  name?: string;
   description?: string;
+  // Support both price field names
   price?: number;
   estimatedCost?: number;
   estimatedDurationMinutes?: number;
@@ -307,6 +310,28 @@ export async function getMyAppointments(): Promise<Appointment[]> {
   const url = `${API_BASE}/appointments/my-appointments`;
   console.log('Fetching appointments from:', url); // Debug log
   
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+export async function getAppointmentById(id: number): Promise<Appointment> {
+  const token = localStorage.getItem('token');
+  const url = `${API_BASE}/appointments/${id}`;
+  console.log('Fetching appointment from:', url);
+
   const response = await fetch(url, {
     method: 'GET',
     headers: {

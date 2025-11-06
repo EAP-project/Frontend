@@ -211,7 +211,7 @@ export default function EmployeeDashboard() {
                         </p>
                       </div>
                       <p className="font-medium text-gray-900">
-                        {apt.service?.serviceName || "N/A"}
+                        {apt.service?.serviceName || apt.service?.name || "N/A"}
                       </p>
                       <p className="text-sm text-gray-600">
                         {apt.vehicle?.model} ({apt.vehicle?.year}) -{" "}
