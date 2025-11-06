@@ -459,3 +459,84 @@ export async function validateResetToken(token: string): Promise<string> {
   return await response.text();
 }
 
+// Get scheduled appointments (for employees)
+export async function getScheduledAppointments(): Promise<Appointment[]> {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_BASE}/appointments/scheduled`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+// Accept appointment (employee)
+export async function acceptAppointment(appointmentId: number): Promise<Appointment> {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_BASE}/appointments/${appointmentId}/accept`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+// Cancel appointment (employee)
+export async function cancelAppointment(appointmentId: number): Promise<Appointment> {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_BASE}/appointments/${appointmentId}/cancel`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+// Get employee's in-progress appointments
+export async function getMyInProgressAppointments(): Promise<Appointment[]> {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_BASE}/appointments/my-inprogress`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+
