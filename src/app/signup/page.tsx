@@ -26,6 +26,7 @@ import {
 import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { register, RegistrationRequest } from "@/lib/api";
 
 // Schema for signup - matches backend User model
 const formSchema = z
@@ -51,7 +52,7 @@ const formSchema = z
       .string()
       .regex(/^\d{10,15}$/, "Phone number must be between 10 and 15 digits"),
     role: z
-      .enum(["MANAGER", "CUSTOMER", "SUPERVISOR", "TECHNICIAN"])
+      .enum(["ADMIN", "EMPLOYEE", "CUSTOMER"])
       .describe("Please select a role"),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -62,18 +63,6 @@ const formSchema = z
 type SignUpFormValues = z.infer<typeof formSchema>;
 
 // Response types matching backend
-interface RegistrationResponse {
-  message: string;
-  username: string;
-  email: string;
-  role: string;
-  firstName: string;
-  lastName: string;
-}
-
-interface ErrorResponse {
-  error: string;
-}
 
 export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -99,34 +88,28 @@ export default function SignUpPage() {
     setError(null);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/register`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(data),
-        }
-      );
+      const payload: RegistrationRequest = {
+        username: data.username,
+        password: data.password,
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phoneNumber: data.phoneNumber,
+        role: data.role,
+      };
 
-      const result = await response.json();
+      const registrationResponse = await register(payload);
+      console.log("Registration successful:", registrationResponse);
 
-      if (response.ok) {
-        // Registration successful
-        const registrationResponse = result as RegistrationResponse;
-        console.log("Registration successful:", registrationResponse);
-
-        // Redirect to login page
-        router.push("/login?message=Registration successful. Please login.");
-      } else {
-        // Registration failed
-        const errorResponse = result as ErrorResponse;
-        setError(errorResponse.error);
-      }
-    } catch (error) {
-      console.error("Registration error:", error);
-      setError("Failed to connect to server. Please try again.");
+      // Redirect to login page with message
+      router.push("/login?message=Registration successful. Please login.");
+    } catch (err: unknown) {
+      console.error("Registration error:", err);
+      if (err instanceof Error)
+        setError(
+          err.message || "Failed to connect to server. Please try again."
+        );
+      else setError(String(err));
     } finally {
       setIsLoading(false);
     }
@@ -361,9 +344,8 @@ export default function SignUpPage() {
                             >
                               <option value="">Select a role</option>
                               <option value="CUSTOMER">Customer</option>
-                              <option value="MANAGER">Manager</option>
-                              <option value="SUPERVISOR">Supervisor</option>
-                              <option value="TECHNICIAN">Technician</option>
+                              <option value="EMPLOYEE">Employee</option>
+                              <option value="ADMIN">Admin</option>
                             </select>
                           </FormControl>
                           <FormMessage className="text-red-600" />

@@ -88,7 +88,7 @@ export default function HomePage() {
               className="h-12 w-full rounded-full bg-indigo-600 hover:bg-indigo-700 text-base text-white sm:w-auto"
             >
               <Link href="/signup">
-                Get started—it's free
+                Get started—it&apos;s free
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
