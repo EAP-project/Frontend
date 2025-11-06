@@ -207,8 +207,7 @@ export default function AddAppointmentPage() {
             <ul className="text-sm text-gray-800 space-y-1 list-disc list-inside">
               {services.map((service) => (
                 <li key={service.id} className="text-gray-900">
-                  {service.serviceName}{" "}
-                  {service.price ? `- $${service.price}` : ""}
+                  {service.name}
                 </li>
               ))}
             </ul>
@@ -271,8 +270,7 @@ export default function AddAppointmentPage() {
                         <option value={0}>Select a service</option>
                         {services.map((service) => (
                           <option key={service.id} value={service.id}>
-                            {service.serviceName}
-                            {service.price ? ` - $${service.price}` : ""}
+                            {service.name}
                           </option>
                         ))}
                       </select>
