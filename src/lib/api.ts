@@ -196,7 +196,10 @@ export interface ServiceDTO {
 
 export async function getAllServices(): Promise<Service[]> {
   const token = localStorage.getItem('token');
-  const response = await fetch(`${API_BASE}/services`, {
+  const url = `${API_BASE}/services`;
+  console.log('Fetching services from:', url); // Debug log
+
+  const response = await fetch(url, {
     method: 'GET',
     headers: {
       'Accept': 'application/json',
@@ -205,12 +208,17 @@ export async function getAllServices(): Promise<Service[]> {
     mode: 'cors',
   });
 
+  console.log('Services response status:', response.status); // Debug log
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
+    console.error('Services fetch error:', errorData); // Debug log
     throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
   }
 
-  return await response.json();
+  const data = await response.json();
+  console.log('Services response data:', data); // Debug log
+  return data;
 }
 
 export async function createService(serviceData: ServiceDTO, imageFile?: File): Promise<Service> {
@@ -284,6 +292,32 @@ export interface Appointment {
   updatedAt?: string;
 }
 
+// Slot-based appointment request
+export interface SlotBasedAppointmentRequestDTO {
+  vehicleId: number;
+  serviceId: number;
+  appointmentDate: string; // YYYY-MM-DD format
+  sessionPeriod: 'MORNING' | 'AFTERNOON';
+  slotNumber: number; // 1-5
+  customerNotes?: string;
+}
+
+// Available slot
+export interface AvailableSlot {
+  slotNumber: number;
+  startTime: string; // HH:mm:ss format
+  endTime: string; // HH:mm:ss format
+  isAvailable: boolean;
+}
+
+// Slot template
+export interface SlotTemplate {
+  sessionPeriod: 'MORNING' | 'AFTERNOON';
+  slotNumber: number;
+  startTime: string;
+  endTime: string;
+}
+
 export async function createAppointment(data: AppointmentRequestDTO): Promise<Appointment> {
   const token = localStorage.getItem('token');
   const response = await fetch(`${API_BASE}/appointments/standard-service`, {
@@ -294,6 +328,72 @@ export async function createAppointment(data: AppointmentRequestDTO): Promise<Ap
       'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify(data),
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+// Create slot-based appointment
+export async function createSlotBasedAppointment(data: SlotBasedAppointmentRequestDTO): Promise<Appointment> {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_BASE}/appointments/slot-based-service`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+// Get available slots
+export async function getAvailableSlots(date: string, period: 'MORNING' | 'AFTERNOON'): Promise<AvailableSlot[]> {
+  const token = localStorage.getItem('token');
+  const url = `${API_BASE}/appointments/available-slots?date=${date}&period=${period}`;
+  
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+// Get slot templates
+export async function getSlotTemplates(): Promise<SlotTemplate[]> {
+  const token = localStorage.getItem('token');
+  const url = `${API_BASE}/appointments/slot-templates`;
+  
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
     mode: 'cors',
   });
 
