@@ -850,3 +850,23 @@ export async function getMyTimeLogs(): Promise<TimeLog[]> {
   return await response.json();
 }
 
+// Get all time logs across all employees (for admin)
+export async function getAllTimeLogs(): Promise<TimeLog[]> {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_BASE}/time-logs/all`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+

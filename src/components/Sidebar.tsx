@@ -94,6 +94,11 @@ const navItems: Record<string, NavItem[]> = {
       icon: <Calendar className="h-5 w-5" />,
     },
     {
+      label: "Time Logs",
+      href: "/admin/time-logs",
+      icon: <Clock className="h-5 w-5" />,
+    },
+    {
       label: "Service History",
       href: "/admin/history",
       icon: <FileText className="h-5 w-5" />,
