@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Appointment } from "@/lib/api";
+import { Appointment, getMyAwaitingPartsAppointments } from "@/lib/api";
 import Sidebar from "@/components/Sidebar";
 import { Card } from "@/components/ui/card";
 import {
@@ -60,21 +60,7 @@ export default function AwaitingPartsPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        "http://localhost:8080/api/appointments?status=AWAITING_PARTS",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch appointments");
-      }
-
-      const data = await response.json();
+      const data = await getMyAwaitingPartsAppointments();
       setAppointments(data);
       setError(null);
     } catch (err) {
@@ -246,7 +232,7 @@ export default function AwaitingPartsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium text-gray-900">
-                          {appointment.service?.serviceName || "N/A"}
+                          {appointment.service?.name || "N/A"}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -386,7 +372,7 @@ export default function AwaitingPartsPage() {
                         Service Name
                       </label>
                       <p className="text-sm font-medium text-gray-900">
-                        {selectedAppointment.service?.serviceName || "N/A"}
+                        {selectedAppointment.service?.name || "N/A"}
                       </p>
                     </div>
 

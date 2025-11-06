@@ -14,6 +14,7 @@ import {
   Wrench,
   Package,
   CheckCircle,
+  Clock,
 } from "lucide-react";
 import { Button } from "./ui/Button";
 import { useRouter } from "next/navigation";
@@ -93,6 +94,11 @@ const navItems: Record<string, NavItem[]> = {
       icon: <Calendar className="h-5 w-5" />,
     },
     {
+      label: "Service History",
+      href: "/admin/history",
+      icon: <FileText className="h-5 w-5" />,
+    },
+    {
       label: "Settings",
       href: "/admin/settings",
       icon: <Settings className="h-5 w-5" />,
@@ -127,7 +133,7 @@ const navItems: Record<string, NavItem[]> = {
     {
       label: "Time Logs",
       href: "/employee/time-logs",
-      icon: <FileText className="h-5 w-5" />,
+      icon: <Clock className="h-5 w-5" />,
     },
   ],
 };
