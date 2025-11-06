@@ -2,27 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  getScheduledAppointments,
-  acceptAppointment,
-  cancelAppointment,
-  Appointment,
-} from "@/lib/api";
+import { Appointment } from "@/lib/api";
 import Sidebar from "@/components/Sidebar";
 import { Card } from "@/components/ui/card";
-import {
-  Calendar,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Car,
-  User,
-  FileText,
-  Eye,
-  X,
-} from "lucide-react";
+import { Calendar, Clock, Car, CheckCircle, Eye, X } from "lucide-react";
 
-export default function EmployeeDashboard() {
+export default function CompletedPage() {
   const router = useRouter();
   const [user, setUser] = useState<{
     firstName?: string;
@@ -30,12 +15,9 @@ export default function EmployeeDashboard() {
     email?: string;
     role?: string;
   } | null>(null);
-  const [scheduledAppointments, setScheduledAppointments] = useState<
-    Appointment[]
-  >([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -49,20 +31,17 @@ export default function EmployeeDashboard() {
       return;
     }
 
-    const userData = JSON.parse(userStr);
-    setUser(userData);
+    try {
+      const parsedUser = JSON.parse(userStr);
+      setUser(parsedUser);
 
-    const role = userData.role?.toUpperCase() || "";
-    if (role.includes("ADMIN")) {
-      router.push("/dashboard/admin");
-      return;
-    } else if (
-      !role.includes("EMPLOYEE") &&
-      !role.includes("TECHNICIAN") &&
-      !role.includes("SUPERVISOR") &&
-      !role.includes("MANAGER")
-    ) {
-      router.push("/dashboard/customer");
+      if (parsedUser.role !== "EMPLOYEE" && parsedUser.role !== "ADMIN") {
+        router.push("/dashboard/customer");
+        return;
+      }
+    } catch (error) {
+      console.error("Failed to parse user:", error);
+      router.push("/login");
       return;
     }
 
@@ -72,8 +51,22 @@ export default function EmployeeDashboard() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const scheduled = await getScheduledAppointments();
-      setScheduledAppointments(scheduled);
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        "http://localhost:8080/api/appointments?status=COMPLETED",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch appointments");
+      }
+
+      const data = await response.json();
+      setAppointments(data);
       setError(null);
     } catch (err) {
       console.error("Failed to load data:", err);
@@ -81,51 +74,6 @@ export default function EmployeeDashboard() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleAccept = async (appointmentId: number) => {
-    try {
-      setActionLoading(appointmentId);
-      await acceptAppointment(appointmentId);
-      await loadData(); // Reload data
-    } catch (err) {
-      console.error("Failed to accept appointment:", err);
-      alert(
-        err instanceof Error ? err.message : "Failed to accept appointment"
-      );
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleCancel = async (appointmentId: number) => {
-    if (!confirm("Are you sure you want to cancel this appointment?")) {
-      return;
-    }
-
-    try {
-      setActionLoading(appointmentId);
-      await cancelAppointment(appointmentId);
-      await loadData(); // Reload data
-    } catch (err) {
-      console.error("Failed to cancel appointment:", err);
-      alert(
-        err instanceof Error ? err.message : "Failed to cancel appointment"
-      );
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const formatDateTime = (dateTime: string) => {
-    const date = new Date(dateTime);
-    return date.toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
   };
 
   const formatDate = (dateTime: string) => {
@@ -145,11 +93,20 @@ export default function EmployeeDashboard() {
     });
   };
 
+  const formatDateTime = (dateTime: string) => {
+    const date = new Date(dateTime);
+    return date.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   const handleViewDetails = (appointment: Appointment) => {
-    console.log("View details clicked for appointment:", appointment);
     setSelectedAppointment(appointment);
     setShowDetailsModal(true);
-    console.log("Modal should be visible now. showDetailsModal:", true);
   };
 
   const closeModal = () => {
@@ -160,22 +117,27 @@ export default function EmployeeDashboard() {
   if (!user || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar role="employee" />
+      <Sidebar
+        role={user.role === "ADMIN" ? "admin" : "employee"}
+        user={user}
+      />
 
       <div className="flex-1 p-8">
-        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">
-            Welcome, {user.firstName} {user.lastName}
-          </h1>
-          <p className="text-gray-600 mt-2">Employee Dashboard</p>
+          <h1 className="text-3xl font-bold text-gray-900">Completed Jobs</h1>
+          <p className="text-gray-600 mt-2">
+            Successfully completed appointments
+          </p>
         </div>
 
         {error && (
@@ -184,24 +146,12 @@ export default function EmployeeDashboard() {
           </div>
         )}
 
-        {/* Scheduled Appointments */}
+        {/* Completed Appointments */}
         <div>
-          <div className="mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">
-              Available Scheduled Appointments
-            </h2>
-            <p className="text-gray-600 text-sm mt-1">
-              All employees can see these appointments. Accept to start working
-              on them.
-            </p>
-          </div>
-
-          {scheduledAppointments.length === 0 ? (
+          {appointments.length === 0 ? (
             <Card className="p-8 text-center">
-              <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <p className="text-gray-600">
-                No scheduled appointments available
-              </p>
+              <CheckCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <p className="text-gray-600">No completed appointments</p>
             </Card>
           ) : (
             <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -229,13 +179,13 @@ export default function EmployeeDashboard() {
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Details
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {scheduledAppointments.map((appointment) => (
+                  {appointments.map((appointment) => (
                     <tr key={appointment.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         #{appointment.id}
@@ -258,7 +208,7 @@ export default function EmployeeDashboard() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium text-gray-900">
-                          {appointment.service?.name || "N/A"}
+                          {appointment.service?.serviceName || "N/A"}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -283,27 +233,10 @@ export default function EmployeeDashboard() {
                           <Eye className="h-5 w-5" />
                         </button>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
-                          <button
-                            onClick={() => handleAccept(appointment.id)}
-                            disabled={actionLoading === appointment.id}
-                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            {actionLoading === appointment.id
-                              ? "..."
-                              : "Accept"}
-                          </button>
-                          <button
-                            onClick={() => handleCancel(appointment.id)}
-                            disabled={actionLoading === appointment.id}
-                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
-                          >
-                            <XCircle className="h-4 w-4 mr-1" />
-                            Cancel
-                          </button>
-                        </div>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                          Completed
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -335,7 +268,7 @@ export default function EmployeeDashboard() {
             {/* Modal panel */}
             <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full z-50">
               {/* Header */}
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+              <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-white">
                     Appointment Details - #{selectedAppointment.id}
@@ -390,17 +323,7 @@ export default function EmployeeDashboard() {
                         Status
                       </label>
                       <p className="text-sm">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                            selectedAppointment.status === "SCHEDULED"
-                              ? "bg-blue-100 text-blue-800"
-                              : selectedAppointment.status === "IN_PROGRESS"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : selectedAppointment.status === "COMPLETED"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
+                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
                           {selectedAppointment.status}
                         </span>
                       </p>
@@ -418,7 +341,7 @@ export default function EmployeeDashboard() {
                         Service Name
                       </label>
                       <p className="text-sm font-medium text-gray-900">
-                        {selectedAppointment.service?.name || "N/A"}
+                        {selectedAppointment.service?.serviceName || "N/A"}
                       </p>
                     </div>
 
@@ -528,38 +451,6 @@ export default function EmployeeDashboard() {
                     )}
                   </div>
                 </div>
-
-                {/* Additional Information */}
-                {(selectedAppointment.createdAt ||
-                  selectedAppointment.updatedAt) && (
-                  <div className="mt-6 pt-6 border-t">
-                    <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">
-                      Additional Information
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      {selectedAppointment.createdAt && (
-                        <div>
-                          <label className="text-xs text-gray-500 uppercase">
-                            Created At
-                          </label>
-                          <p className="text-sm text-gray-700">
-                            {formatDateTime(selectedAppointment.createdAt)}
-                          </p>
-                        </div>
-                      )}
-                      {selectedAppointment.updatedAt && (
-                        <div>
-                          <label className="text-xs text-gray-500 uppercase">
-                            Last Updated
-                          </label>
-                          <p className="text-sm text-gray-700">
-                            {formatDateTime(selectedAppointment.updatedAt)}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Footer */}
@@ -570,30 +461,6 @@ export default function EmployeeDashboard() {
                 >
                   Close
                 </button>
-                {selectedAppointment.status === "SCHEDULED" && (
-                  <>
-                    <button
-                      onClick={() => {
-                        handleAccept(selectedAppointment.id);
-                        closeModal();
-                      }}
-                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center"
-                    >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Accept
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleCancel(selectedAppointment.id);
-                        closeModal();
-                      }}
-                      className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center"
-                    >
-                      <XCircle className="h-4 w-4 mr-2" />
-                      Cancel
-                    </button>
-                  </>
-                )}
               </div>
             </div>
           </div>

@@ -12,6 +12,8 @@ import {
   User,
   Users,
   Wrench,
+  Package,
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "./ui/Button";
 import { useRouter } from "next/navigation";
@@ -103,9 +105,19 @@ const navItems: Record<string, NavItem[]> = {
       icon: <LayoutDashboard className="h-5 w-5" />,
     },
     {
-      label: "My Jobs",
+      label: "Ongoing Jobs",
       href: "/employee/jobs",
       icon: <Wrench className="h-5 w-5" />,
+    },
+    {
+      label: "Awaiting Parts",
+      href: "/employee/awaiting-parts",
+      icon: <Package className="h-5 w-5" />,
+    },
+    {
+      label: "Completed",
+      href: "/employee/completed",
+      icon: <CheckCircle className="h-5 w-5" />,
     },
     {
       label: "Appointments",
