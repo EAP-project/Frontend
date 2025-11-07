@@ -45,6 +45,9 @@ export default function AddAppointmentPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmType, setConfirmType] = useState<"cancel" | "book" | null>(null);
+  const [formData, setFormData] = useState<AppointmentFormValues | null>(null);
 
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentSchema),
@@ -88,35 +91,69 @@ export default function AddAppointmentPage() {
   }, []);
 
   const onSubmit = async (data: AppointmentFormValues) => {
+    setFormData(data);
+    setConfirmType("book");
+    setShowConfirm(true);
+  };
+
+  const handleBookAppointment = async () => {
+    if (!formData) return;
     setIsLoading(true);
     setError(null);
-
     try {
       const appointmentData: AppointmentRequestDTO = {
-        vehicleId: data.vehicleId,
-        serviceId: data.serviceId,
-        appointmentDateTime: new Date(data.appointmentDateTime).toISOString(),
-        customerNotes: data.customerNotes,
+        vehicleId: formData.vehicleId,
+        serviceId: formData.serviceId,
+        appointmentDateTime: new Date(formData.appointmentDateTime).toISOString(),
+        customerNotes: formData.customerNotes,
       };
-
       await createAppointment(appointmentData);
-
-      // Redirect back to customer dashboard
-      router.push(
-        "/dashboard/customer?success=Appointment booked successfully"
-      );
+      router.push("/dashboard/customer?success=Appointment booked successfully");
     } catch (err: unknown) {
       console.error("Error booking appointment:", err);
       if (err instanceof Error) {
-        setError(
-          err.message || "Failed to book appointment. Please try again."
-        );
+        setError(err.message || "Failed to book appointment. Please try again.");
       } else {
         setError(String(err));
       }
     } finally {
       setIsLoading(false);
+      setShowConfirm(false);
+      setConfirmType(null);
+      setFormData(null);
     }
+  };
+  interface ConfirmationModalProps {
+    open: boolean;
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+  }
+
+  const ConfirmationModal = ({ open, message, onConfirm, onCancel }: ConfirmationModalProps) => {
+    if (!open) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent backdrop-blur-sm">
+        <div className="bg-white/90 w-80 p-6 rounded-2xl shadow-2xl border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-800 mb-3">Confirmation</h3>
+          <p className="text-sm text-gray-600 mb-6">{message}</p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (loadingData) {
@@ -329,7 +366,10 @@ export default function AddAppointmentPage() {
                   type="button"
                   variant="outline"
                   className="flex-1 h-12 rounded-xl text-base"
-                  onClick={() => router.push("/dashboard/customer")}
+                  onClick={() => {
+                    setConfirmType("cancel");
+                    setShowConfirm(true);
+                  }}
                   disabled={isLoading}
                 >
                   Cancel
@@ -342,6 +382,27 @@ export default function AddAppointmentPage() {
                   {isLoading ? "Booking..." : "Book Appointment"}
                 </Button>
               </div>
+      <ConfirmationModal
+        open={showConfirm}
+        message={
+          confirmType === "cancel"
+            ? "Are you sure you want to cancel booking this appointment?"
+            : "Are you sure you want to book this appointment?"
+        }
+        onConfirm={() => {
+          if (confirmType === "cancel") {
+            setShowConfirm(false);
+            setConfirmType(null);
+            router.push("/dashboard/customer");
+          } else if (confirmType === "book") {
+            handleBookAppointment();
+          }
+        }}
+        onCancel={() => {
+          setShowConfirm(false);
+          setConfirmType(null);
+        }}
+      />
             </form>
           </Form>
         </Card>

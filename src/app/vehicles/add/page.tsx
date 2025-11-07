@@ -35,6 +35,10 @@ export default function AddVehiclePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmType, setConfirmType] = useState<"cancel" | "add" | null>(null);
+  const [formData, setFormData] = useState<VehicleFormValues | null>(null);
+
 
   const form = useForm<VehicleFormValues>({
     resolver: zodResolver(vehicleSchema),
@@ -46,19 +50,22 @@ export default function AddVehiclePage() {
   });
 
   const onSubmit = async (data: VehicleFormValues) => {
+    setFormData(data);
+    setConfirmType("add");
+    setShowConfirm(true);
+  };
+
+  const handleAddVehicle = async () => {
+    if (!formData) return;
     setIsLoading(true);
     setError(null);
-
     try {
       const vehicleData: VehicleDTO = {
-        model: data.model,
-        year: data.year,
-        licensePlate: data.licensePlate,
+        model: formData.model,
+        year: formData.year,
+        licensePlate: formData.licensePlate,
       };
-
       await createVehicle(vehicleData);
-
-      // Redirect back to customer dashboard
       router.push("/dashboard/customer?success=Vehicle added successfully");
     } catch (err: unknown) {
       console.error("Error adding vehicle:", err);
@@ -69,7 +76,42 @@ export default function AddVehiclePage() {
       }
     } finally {
       setIsLoading(false);
+      setShowConfirm(false);
+      setConfirmType(null);
+      setFormData(null);
     }
+  };
+  interface ConfirmationModalProps {
+    open: boolean;
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+  }
+
+  const ConfirmationModal = ({ open, message, onConfirm, onCancel }: ConfirmationModalProps) => {
+    if (!open) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent backdrop-blur-sm">
+        <div className="bg-white/90 w-80 p-6 rounded-2xl shadow-2xl border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-800 mb-3">Confirmation</h3>
+          <p className="text-sm text-gray-600 mb-6">{message}</p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -193,7 +235,10 @@ export default function AddVehiclePage() {
                   type="button"
                   variant="outline"
                   className="flex-1 h-12 rounded-xl text-base"
-                  onClick={() => router.push("/dashboard/customer")}
+                  onClick={() => {
+                    setConfirmType("cancel");
+                    setShowConfirm(true);
+                  }}
                   disabled={isLoading}
                 >
                   Cancel
@@ -210,6 +255,27 @@ export default function AddVehiclePage() {
           </Form>
         </Card>
       </main>
+      <ConfirmationModal
+        open={showConfirm}
+        message={
+          confirmType === "cancel"
+            ? "Are you sure you want to cancel adding this vehicle?"
+            : "Are you sure you want to add this vehicle?"
+        }
+        onConfirm={() => {
+          if (confirmType === "cancel") {
+            setShowConfirm(false);
+            setConfirmType(null);
+            router.push("/dashboard/customer");
+          } else if (confirmType === "add") {
+            handleAddVehicle();
+          }
+        }}
+        onCancel={() => {
+          setShowConfirm(false);
+          setConfirmType(null);
+        }}
+      />
     </div>
   );
 }
