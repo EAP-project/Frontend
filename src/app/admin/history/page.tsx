@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Appointment, getAllServiceHistory } from "@/lib/api";
-import { Sidebar } from "@/components/Sidebar";
 import {
   Calendar,
   Clock,
@@ -87,7 +86,6 @@ export default function AdminHistoryPage() {
   if (loading) {
     return (
       <div className="flex h-screen">
-        {user && <Sidebar role="admin" user={user} />}
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
@@ -101,7 +99,6 @@ export default function AdminHistoryPage() {
   if (error) {
     return (
       <div className="flex h-screen">
-        {user && <Sidebar role="admin" user={user} />}
         <div className="flex-1 p-6">
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
             {error}
@@ -113,7 +110,6 @@ export default function AdminHistoryPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {user && <Sidebar role="admin" user={user} />}
       <div className="flex-1 overflow-auto">
         <div className="p-6">
           <div className="mb-6">
