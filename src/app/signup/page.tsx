@@ -51,9 +51,6 @@ const formSchema = z
     phoneNumber: z
       .string()
       .regex(/^\d{10,15}$/, "Phone number must be between 10 and 15 digits"),
-    role: z
-      .enum(["ADMIN", "EMPLOYEE", "CUSTOMER"])
-      .describe("Please select a role"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -80,7 +77,6 @@ export default function SignUpPage() {
       firstName: "",
       lastName: "",
       phoneNumber: "",
-      role: "CUSTOMER",
     },
   });
 
@@ -96,7 +92,7 @@ export default function SignUpPage() {
         firstName: data.firstName,
         lastName: data.lastName,
         phoneNumber: data.phoneNumber,
-        role: data.role,
+        role: "CUSTOMER", // Always CUSTOMER for public signup
       };
 
       const registrationResponse = await register(payload);
@@ -198,8 +194,7 @@ export default function SignUpPage() {
         <div className="w-full max-w-6xl">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 items-center">
             {/* Left Column with Illustration & Benefits */}
-            <div className="ml-6 mr-6 sm:ml-10 sm:mr-10 md:ml-10 md:mr-10  lg:ml-0 lg:mr-0 lg:flex lg:flex-col justify-center"
-            >
+            <div className="ml-6 mr-6 sm:ml-10 sm:mr-10 md:ml-10 md:mr-10  lg:ml-0 lg:mr-0 lg:flex lg:flex-col justify-center">
               <Image
                 src="/images/signup2.png"
                 alt="Sign Up Illustration"
@@ -385,31 +380,6 @@ export default function SignUpPage() {
                                 {...field}
                               />
                             </div>
-                          </FormControl>
-                          <FormMessage className="text-red-600" />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Role */}
-                    <FormField
-                      control={form.control}
-                      name="role"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-base text-purple-700">
-                            Role
-                          </FormLabel>
-                          <FormControl>
-                            <select
-                              className="w-full h-12 pl-3 rounded-xl text-base border border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all bg-white"
-                              {...field}
-                            >
-                              <option value="">Select a role</option>
-                              <option value="CUSTOMER">Customer</option>
-                              <option value="EMPLOYEE">Employee</option>
-                              <option value="ADMIN">Admin</option>
-                            </select>
                           </FormControl>
                           <FormMessage className="text-red-600" />
                         </FormItem>
