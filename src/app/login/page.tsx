@@ -126,17 +126,17 @@ export default function LoginPage() {
         </Button>
       </div>
 
-      <div className="flex flex-1 items-center justify-center p-6">
+      <div className="flex flex-1 items-center justify-center p-0">
         <div className="w-full max-w-6xl">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 items-center">
             {/* Left Illustration */}
-            <div className="hidden lg:flex lg:flex-col lg:justify-center">
+            <div className="ml-6 mr-6 sm:ml-10 sm:mr-10 md:ml-10 md:mr-10  lg:ml-0 lg:mr-0 lg:flex lg:flex-col justify-center">{/*hidden */}
               <Image
-                src="/images/signin.webp"
+                src="/images/signin5.png"
                 alt="Login Illustration"
                 width={500}
-                height={400}
-                className="mb-8"
+                height={100}
+                className="mb-12 ml-auto mr-auto lg:mx-0"
               />
               <h2 className="text-4xl font-bold text-purple-800 mb-6 xl:text-5xl">
                 Welcome back!
@@ -146,7 +146,7 @@ export default function LoginPage() {
                 connect with customers instantly.
               </p>
 
-              <div className="space-y-4">
+              <div className="space-y-4 mb-12">
                 {["Secure login", "Fast access", "24/7 support"].map(
                   (text, i) => (
                     <div key={i} className="flex items-start gap-3">
@@ -172,7 +172,7 @@ export default function LoginPage() {
             </div>
 
             {/* Right - Login Form */}
-            <div className="flex flex-col justify-center">
+            <div className="flex flex-col justify-center ml-5 mr-5">
               <div className="text-center lg:text-left mb-8">
                 <h1 className="text-4xl font-bold text-purple-800 mb-3">
                   Sign in to your account
@@ -273,26 +273,26 @@ export default function LoginPage() {
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-gray-300"></div>
                   </div>
-                  <div className="relative flex justify-center text-sm">
+                  {/* <div className="relative flex justify-center text-sm">
                     <span className="px-4 bg-white text-purple-600">
                       Or continue with
                     </span>
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Social Login */}
-                <div className="grid grid-cols-1 gap-3">
+                {/* <div className="grid grid-cols-1 gap-3">
                   <Button
                     variant="outline"
                     className="h-12 rounded-xl border-2 border-purple-500 text-purple-600 hover:bg-gray-50 hover:text-black hover:border-black transition-colors"
                   >
                     Google
                   </Button>
-                </div>
+                </div> */}
               </div>
 
               {/* Sign Up Link */}
-              <p className="text-center text-purple-600 mt-8">
+              <p className="text-center text-purple-600 mt-8 mb-12">
                 Don&apos;t have an account?{" "}
                 <Link
                   href="/signup"
