@@ -29,6 +29,10 @@ export default function AwaitingPartsPage() {
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -108,33 +112,110 @@ export default function AwaitingPartsPage() {
     setSelectedAppointment(null);
   };
 
-  const handleMoveToInProgress = async (appointmentId: number) => {
-    try {
-      setActionLoading(appointmentId);
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        `http://localhost:8080/api/appointments/${appointmentId}/status`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ status: "IN_PROGRESS" }),
-        }
-      );
+  // Show confirmation dialog and set selected appointment ID
+  const handleMoveToInProgress = (appointmentId: number) => {
+    setSelectedAppointmentId(appointmentId);
+    setShowPopup(true);
+  };
 
-      if (!response.ok) {
-        throw new Error("Failed to update status");
+  // const handleMoveToInProgress = async (appointmentId: number) => {
+  //   try {
+  //     setActionLoading(appointmentId);
+  //     const token = localStorage.getItem("token");
+  //     const response = await fetch(
+  //       `http://localhost:8080/api/appointments/${appointmentId}/status`,
+  //       {
+  //         method: "PUT",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //         body: JSON.stringify({ status: "IN_PROGRESS" }),
+  //       }
+  //     );
+
+  //     if (!response.ok) {
+  //       throw new Error("Failed to update status");
+  //     }
+
+  //     await loadData(); // Reload data
+  //   } catch (err) {
+  //     console.error("Failed to move to in progress:", err);
+  //     setError(err instanceof Error ? err.message : "Failed to update status");
+  //   } finally {
+  //     setActionLoading(null);
+  //   }
+  // };
+
+
+  const confirmMoveToInProgress = async () => {
+  if (!selectedAppointmentId) return;
+
+  setShowPopup(false);
+
+  try {
+    setActionLoading(selectedAppointmentId);
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(
+      `http://localhost:8080/api/appointments/${selectedAppointmentId}/status`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: "IN_PROGRESS" }),
       }
+    );
 
-      await loadData(); // Reload data
-    } catch (err) {
-      console.error("Failed to move to in progress:", err);
-      setError(err instanceof Error ? err.message : "Failed to update status");
-    } finally {
-      setActionLoading(null);
+    if (!response.ok) {
+      throw new Error("Failed to update status");
     }
+
+    await loadData();
+  } catch (err) {
+    console.error("Failed to move to in progress:", err);
+    setError(err instanceof Error ? err.message : "Failed to update status");
+  } finally {
+    setActionLoading(null);
+    setSelectedAppointmentId(null);
+  }
+};
+
+  interface CustomConfirmDialogProps {
+    open: boolean;
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+  }
+
+  const CustomConfirmDialog = ({ open, message, onConfirm, onCancel }: CustomConfirmDialogProps) => {
+    if (!open) return null;
+
+    return (
+      <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="bg-white/90 p-5 rounded-xl shadow-xl w-80 backdrop-blur-md border border-gray-200">
+          <p className="text-sm font-semibold text-gray-800 mb-4">{message}</p>
+
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={onCancel}
+              className="px-3 py-1.5 rounded-md bg-gray-200 hover:bg-gray-300 text-xs"
+            >
+              Cancel
+            </button>
+
+            <button
+              onClick={onConfirm}
+              className="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (!user || loading) {
@@ -489,6 +570,17 @@ export default function AwaitingPartsPage() {
           </div>
         </div>
       )}
+
+      {/* Confirmation Dialog */}
+      <CustomConfirmDialog
+        open={showPopup}
+        message="Are you sure you want to move this appointment to In Progress?"
+        onConfirm={confirmMoveToInProgress}
+        onCancel={() => {
+          setShowPopup(false);
+          setSelectedAppointmentId(null);
+        }}
+      />
     </div>
   );
 }

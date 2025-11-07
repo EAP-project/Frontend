@@ -70,6 +70,8 @@ export default function AddUserPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmType, setConfirmType] = useState<"reset" | "add" | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -109,7 +111,14 @@ export default function AddUserPage() {
     },
   });
 
+  // New: prompt for confirmation before performing add
   const onSubmit = async (data: AddUserFormValues) => {
+    // show confirmation modal for adding user
+    setConfirmType("add");
+    setShowConfirm(true);
+  };
+
+  const performAddUser = async (data: AddUserFormValues) => {
     setIsLoading(true);
     setError(null);
     setSuccess(false);
@@ -150,6 +159,8 @@ export default function AddUserPage() {
       );
     } finally {
       setIsLoading(false);
+      setShowConfirm(false);
+      setConfirmType(null);
     }
   };
 
@@ -426,6 +437,17 @@ export default function AddUserPage() {
 
                 {/* Submit Button */}
                 <div className="flex gap-4 pt-4">
+                   <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setConfirmType("reset");
+                      setShowConfirm(true);
+                    }}
+                    className="h-12 px-6 border-gray-300 hover:bg-gray-50"
+                  >
+                    Reset Form
+                  </Button>
                   <Button
                     type="submit"
                     disabled={isLoading}
@@ -442,14 +464,6 @@ export default function AddUserPage() {
                         Add User
                       </>
                     )}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => form.reset()}
-                    className="h-12 px-6 border-gray-300 hover:bg-gray-50"
-                  >
-                    Reset Form
                   </Button>
                 </div>
               </form>
@@ -479,6 +493,67 @@ export default function AddUserPage() {
           </div>
         </div>
       </div>
+
+      {/* Confirmation modal */}
+      <ConfirmationModal
+        open={showConfirm}
+        message={
+          confirmType === "reset"
+            ? "Are you sure you want to reset the form?"
+            : "Are you sure you want to add this user?"
+        }
+        onConfirm={() => {
+          if (confirmType === "reset") {
+            form.reset();
+            setShowConfirm(false);
+            setConfirmType(null);
+          } else if (confirmType === "add") {
+            const values = form.getValues() as AddUserFormValues;
+            performAddUser(values);
+          }
+        }}
+        onCancel={() => {
+          setShowConfirm(false);
+          setConfirmType(null);
+        }}
+      />
     </div>
   );
 }
+
+// Confirmation modal component (kept at file bottom to avoid reordering earlier code)
+// Note: kept simple and consistent with other modals in the app
+interface ConfirmationModalProps {
+  open: boolean;
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+function ConfirmationModal({ open, message, onConfirm, onCancel }: ConfirmationModalProps) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent backdrop-blur-sm">
+      <div className="bg-white/90 w-80 p-6 rounded-2xl shadow-2xl border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">Confirmation</h3>
+        <p className="text-sm text-gray-600 mb-6">{message}</p>
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm font-medium"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+

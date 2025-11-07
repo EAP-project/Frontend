@@ -27,6 +27,8 @@ export default function AddServicePage() {
     estimatedDurationMinutes: 0,
     categoryId: 1, // Default category
   });
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmType, setConfirmType] = useState<"cancel" | "create" | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -66,15 +68,17 @@ export default function AddServicePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setConfirmType("create");
+    setShowConfirm(true);
+  };
+
+  const handleCreateService = async () => {
     setLoading(true);
     setError(null);
     setSuccess(false);
-
     try {
       await createService(formData, imageFile || undefined);
       setSuccess(true);
-
-      // Reset form
       setFormData({
         name: "",
         description: "",
@@ -84,8 +88,6 @@ export default function AddServicePage() {
       });
       setImageFile(null);
       setImagePreview(null);
-
-      // Redirect after 2 seconds
       setTimeout(() => {
         router.push("/dashboard/admin");
       }, 2000);
@@ -94,7 +96,41 @@ export default function AddServicePage() {
       setError(err instanceof Error ? err.message : "Failed to create service");
     } finally {
       setLoading(false);
+      setShowConfirm(false);
+      setConfirmType(null);
     }
+  };
+  interface ConfirmationModalProps {
+    open: boolean;
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+  }
+
+  const ConfirmationModal = ({ open, message, onConfirm, onCancel }: ConfirmationModalProps) => {
+    if (!open) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent backdrop-blur-sm">
+        <div className="bg-white/90 w-80 p-6 rounded-2xl shadow-2xl border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-800 mb-3">Confirmation</h3>
+          <p className="text-sm text-gray-600 mb-6">{message}</p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (!user) {
@@ -313,20 +349,44 @@ export default function AddServicePage() {
               {/* Submit Button */}
               <div className="flex gap-4 pt-4">
                 <Button
+                  type="button"
+                  onClick={() => {
+                    setConfirmType("cancel");
+                    setShowConfirm(true);
+                  }}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700"
+                >
+                  Cancel
+                </Button>
+                <Button
                   type="submit"
                   disabled={loading}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   {loading ? "Creating..." : "Create Service"}
                 </Button>
-                <Button
-                  type="button"
-                  onClick={() => router.back()}
-                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700"
-                >
-                  Cancel
-                </Button>
               </div>
+      <ConfirmationModal
+        open={showConfirm}
+        message={
+          confirmType === "cancel"
+            ? "Are you sure you want to cancel adding this service?"
+            : "Are you sure you want to create this service?"
+        }
+        onConfirm={() => {
+          if (confirmType === "cancel") {
+            setShowConfirm(false);
+            setConfirmType(null);
+            router.back();
+          } else if (confirmType === "create") {
+            handleCreateService();
+          }
+        }}
+        onCancel={() => {
+          setShowConfirm(false);
+          setConfirmType(null);
+        }}
+      />
             </form>
           </Card>
         </div>
