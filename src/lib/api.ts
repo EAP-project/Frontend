@@ -124,6 +124,7 @@ export interface Vehicle {
     firstName?: string;
     lastName?: string;
     email?: string;
+    phoneNumber?: string;
   };
 }
 
@@ -432,12 +433,19 @@ export interface Appointment {
   service: Service;
   appointmentDateTime: string;
   customerNotes?: string;
+  technicianNotes?: string;
   status?: string;
   employee?: {
     id?: number;
     firstName?: string;
     lastName?: string;
   };
+  assignedEmployees?: Array<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+  }>;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -530,6 +538,33 @@ export async function getAllAppointments(status?: string): Promise<Appointment[]
   }
 
   return await response.json();
+}
+
+// Get active appointments (excluding COMPLETED and CANCELLED) for admin
+export async function getActiveAppointments(): Promise<Appointment[]> {
+  const token = localStorage.getItem('token');
+  const url = `${API_BASE}/appointments`;
+  console.log('Fetching active appointments from:', url);
+  
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  const allAppointments = await response.json();
+  // Filter out COMPLETED and CANCELLED appointments
+  return allAppointments.filter((apt: Appointment) => 
+    apt.status !== 'COMPLETED' && apt.status !== 'CANCELLED'
+  );
 }
 
 // Email verification API
@@ -697,4 +732,141 @@ export async function getMyInProgressAppointments(): Promise<Appointment[]> {
   return await response.json();
 }
 
+// Get employee's awaiting parts appointments
+export async function getMyAwaitingPartsAppointments(): Promise<Appointment[]> {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_BASE}/appointments/my-awaiting-parts`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+// Get employee's completed appointments
+export async function getMyCompletedAppointments(): Promise<Appointment[]> {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_BASE}/appointments/my-completed`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+// Get customer's service history (completed appointments)
+export async function getMyServiceHistory(): Promise<Appointment[]> {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_BASE}/appointments/my-history`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+// Get all service history for employees (all completed appointments with customer details)
+export async function getAllServiceHistory(): Promise<Appointment[]> {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_BASE}/appointments/history`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+// Time Log interfaces
+export interface TimeLog {
+  id: number;
+  startTime: string;
+  endTime: string | null;
+  notes: string;
+  appointmentId: number;
+  employeeId: number;
+  employeeFirstName: string;
+  employeeLastName: string;
+  employeeEmail: string;
+  durationMinutes: number | null;
+  formattedDuration: string | null;
+  serviceName: string;
+  vehicleModel: string;
+  vehicleNumber: string;
+}
+
+// Get employee's time logs
+export async function getMyTimeLogs(): Promise<TimeLog[]> {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_BASE}/time-logs/my-logs`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+// Get all time logs across all employees (for admin)
+export async function getAllTimeLogs(): Promise<TimeLog[]> {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_BASE}/time-logs/all`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
 

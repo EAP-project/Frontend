@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Appointment } from "@/lib/api";
+import { Appointment, getMyCompletedAppointments } from "@/lib/api";
 import Sidebar from "@/components/Sidebar";
 import { Card } from "@/components/ui/card";
 import { Calendar, Clock, Car, CheckCircle, Eye, X } from "lucide-react";
@@ -51,21 +51,7 @@ export default function CompletedPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        "http://localhost:8080/api/appointments?status=COMPLETED",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch appointments");
-      }
-
-      const data = await response.json();
+      const data = await getMyCompletedAppointments();
       setAppointments(data);
       setError(null);
     } catch (err) {
@@ -208,7 +194,7 @@ export default function CompletedPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium text-gray-900">
-                          {appointment.service?.serviceName || "N/A"}
+                          {appointment.service?.name || "N/A"}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -341,7 +327,7 @@ export default function CompletedPage() {
                         Service Name
                       </label>
                       <p className="text-sm font-medium text-gray-900">
-                        {selectedAppointment.service?.serviceName || "N/A"}
+                        {selectedAppointment.service?.name || "N/A"}
                       </p>
                     </div>
 

@@ -1,0 +1,412 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Appointment, getActiveAppointments } from "@/lib/api";
+import { Sidebar } from "@/components/Sidebar";
+import {
+  Calendar,
+  Clock,
+  Car,
+  Eye,
+  X,
+  Wrench,
+  User,
+  AlertCircle,
+} from "lucide-react";
+
+export default function AdminAppointmentsPage() {
+  const router = useRouter();
+  const [user, setUser] = useState<{
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    role?: string;
+  } | null>(null);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedAppointment, setSelectedAppointment] =
+    useState<Appointment | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userStr = localStorage.getItem("user");
+
+    if (!token || !userStr) {
+      router.push("/login");
+      return;
+    }
+
+    try {
+      const parsedUser = JSON.parse(userStr);
+      setUser(parsedUser);
+
+      if (parsedUser.role !== "ADMIN") {
+        router.push("/dashboard/customer");
+        return;
+      }
+    } catch (err) {
+      console.error("Error parsing user:", err);
+      router.push("/login");
+      return;
+    }
+
+    fetchAppointments();
+  }, [router]);
+
+  const fetchAppointments = async () => {
+    try {
+      setLoading(true);
+      const data = await getActiveAppointments();
+      // Sort by date, newest first
+      const sorted = data.sort(
+        (a, b) =>
+          new Date(b.appointmentDateTime).getTime() -
+          new Date(a.appointmentDateTime).getTime()
+      );
+      setAppointments(sorted);
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch appointments");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDateTime = (dateTimeStr: string) => {
+    const date = new Date(dateTimeStr);
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusStyles: { [key: string]: string } = {
+      PENDING: "bg-yellow-100 text-yellow-800",
+      SCHEDULED: "bg-blue-100 text-blue-800",
+      IN_PROGRESS: "bg-purple-100 text-purple-800",
+      AWAITING_PARTS: "bg-orange-100 text-orange-800",
+    };
+
+    return (
+      <span
+        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+          statusStyles[status] || "bg-gray-100 text-gray-800"
+        }`}
+      >
+        {status.replace("_", " ")}
+      </span>
+    );
+  };
+
+  const viewDetails = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setShowDetailsModal(true);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-screen">
+        {user && <Sidebar role="admin" user={user} />}
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading appointments...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen">
+        {user && <Sidebar role="admin" user={user} />}
+        <div className="flex-1 p-6">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            {error}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen bg-gray-50">
+      {user && <Sidebar role="admin" user={user} />}
+      <div className="flex-1 overflow-auto">
+        <div className="p-6">
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Active Appointments
+            </h1>
+            <p className="text-gray-600 mt-2">
+              View all active appointments (excluding completed and cancelled)
+            </p>
+          </div>
+
+          {appointments.length === 0 ? (
+            <div className="bg-white rounded-lg shadow p-8 text-center">
+              <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg">
+                No active appointments found
+              </p>
+              <p className="text-gray-400 mt-2">
+                All appointments are either completed or cancelled
+              </p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ID
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Customer
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date & Time
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Service
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Vehicle
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {appointments.map((appointment) => (
+                      <tr
+                        key={appointment.id}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm font-medium text-gray-900">
+                            #{appointment.id}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <User className="h-4 w-4 text-gray-400 mr-2" />
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {appointment.vehicle?.owner?.firstName}{" "}
+                                {appointment.vehicle?.owner?.lastName}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {appointment.vehicle?.owner?.email}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <Clock className="h-4 w-4 text-gray-400 mr-2" />
+                            <span className="text-sm text-gray-600">
+                              {formatDateTime(appointment.appointmentDateTime)}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center">
+                            <Wrench className="h-4 w-4 text-gray-400 mr-2" />
+                            <span className="text-sm font-medium text-gray-900">
+                              {appointment.service?.name || "N/A"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <Car className="h-4 w-4 text-gray-400 mr-2" />
+                            <div>
+                              <div className="text-sm text-gray-900">
+                                {appointment.vehicle?.model}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {appointment.vehicle?.licensePlate}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {appointment.status &&
+                            getStatusBadge(appointment.status)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() => viewDetails(appointment)}
+                            className="text-blue-600 hover:text-blue-800 transition-colors"
+                            title="View Details"
+                          >
+                            <Eye className="h-5 w-5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Details Modal */}
+        {showDetailsModal && selectedAppointment && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40">
+            <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto relative z-50">
+              <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Appointment Details - #{selectedAppointment.id}
+                </h3>
+                <button
+                  onClick={() => setShowDetailsModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="px-6 py-4 space-y-4">
+                {/* Customer Information */}
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h4 className="text-sm font-semibold text-blue-900 mb-2">
+                    Customer Information
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-blue-700 uppercase">
+                        Name
+                      </label>
+                      <p className="text-sm font-medium text-blue-900">
+                        {selectedAppointment.vehicle?.owner?.firstName}{" "}
+                        {selectedAppointment.vehicle?.owner?.lastName}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-blue-700 uppercase">
+                        Email
+                      </label>
+                      <p className="text-sm text-blue-900">
+                        {selectedAppointment.vehicle?.owner?.email}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-blue-700 uppercase">
+                        Phone
+                      </label>
+                      <p className="text-sm text-blue-900">
+                        {selectedAppointment.vehicle?.owner?.phoneNumber ||
+                          "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Appointment Information */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-gray-500 uppercase">
+                      Service Name
+                    </label>
+                    <p className="text-sm font-medium text-gray-900">
+                      {selectedAppointment.service?.name || "N/A"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-gray-500 uppercase">
+                      Status
+                    </label>
+                    <p className="text-sm">
+                      {selectedAppointment.status &&
+                        getStatusBadge(selectedAppointment.status)}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-gray-500 uppercase">
+                      Vehicle
+                    </label>
+                    <p className="text-sm font-medium text-gray-900">
+                      {selectedAppointment.vehicle?.model} -{" "}
+                      {selectedAppointment.vehicle?.year}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {selectedAppointment.vehicle?.licensePlate}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-gray-500 uppercase">
+                      Date & Time
+                    </label>
+                    <p className="text-sm font-medium text-gray-900">
+                      {formatDateTime(selectedAppointment.appointmentDateTime)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Assigned Employees */}
+                {selectedAppointment.assignedEmployees &&
+                  selectedAppointment.assignedEmployees.length > 0 && (
+                    <div>
+                      <label className="text-xs text-gray-500 uppercase">
+                        Assigned Employees
+                      </label>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {selectedAppointment.assignedEmployees.map((emp) => (
+                          <span
+                            key={emp.id}
+                            className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
+                          >
+                            {emp.firstName} {emp.lastName}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                {selectedAppointment.technicianNotes && (
+                  <div>
+                    <label className="text-xs text-gray-500 uppercase">
+                      Technician Notes
+                    </label>
+                    <p className="text-sm text-gray-700 mt-1 bg-gray-50 p-3 rounded">
+                      {selectedAppointment.technicianNotes}
+                    </p>
+                  </div>
+                )}
+
+                {selectedAppointment.customerNotes && (
+                  <div>
+                    <label className="text-xs text-gray-500 uppercase">
+                      Customer Notes
+                    </label>
+                    <p className="text-sm text-gray-700 mt-1 bg-gray-50 p-3 rounded">
+                      {selectedAppointment.customerNotes}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
