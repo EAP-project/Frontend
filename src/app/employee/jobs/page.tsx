@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getMyInProgressAppointments, Appointment } from "@/lib/api";
-import Sidebar from "@/components/Sidebar";
 import { Card } from "@/components/ui/card";
 import {
   Calendar,
@@ -134,8 +133,8 @@ export default function MyJobsPage() {
     if (!isOpen) return null;
 
     return (
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-        <div className="bg-white/90 p-6 rounded-lg shadow-xl w-80 border border-gray-200 backdrop-blur-md">
+      <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="bg-white/90 p-6 rounded-lg shadow-xl w-80 border border-gray-200">
           <p className="text-sm font-medium text-gray-700 mb-4">{message}</p>
 
           <div className="flex justify-end gap-3">
@@ -193,37 +192,7 @@ export default function MyJobsPage() {
     }
   };
 
-  // const handleStatusChange = async (
-  //   appointmentId: number,
-  //   newStatus: string
-  // ) => {
-  //   try {
-  //     setActionLoading(appointmentId);
-  //     const token = localStorage.getItem("token");
-  //     const response = await fetch(
-  //       `http://localhost:8080/api/appointments/${appointmentId}/status`,
-  //       {
-  //         method: "PUT",
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //         body: JSON.stringify({ status: newStatus }),
-  //       }
-  //     );
-
-  //     if (!response.ok) {
-  //       throw new Error("Failed to update status");
-  //     }
-
-  //     await loadData(); // Reload data
-  //   } catch (err) {
-  //     console.error("Failed to update status:", err);
-  //     setError(err instanceof Error ? err.message : "Failed to update status");
-  //   } finally {
-  //     setActionLoading(null);
-  //   }
-  // };
+  // Removed handleStatusChange as it's replaced by confirmStatusChange
 
   if (!user || loading) {
     return (
@@ -237,156 +206,135 @@ export default function MyJobsPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar
-        role={user.role === "ADMIN" ? "admin" : "employee"}
-        user={user}
-      />
+    <div className="p-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">My Jobs</h1>
+        <p className="text-gray-600 mt-2">
+          Appointments you are currently working on
+        </p>
+      </div>
 
-      <div className="flex-1 p-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Jobs</h1>
-          <p className="text-gray-600 mt-2">
-            Appointments you are currently working on
-          </p>
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          {error}
         </div>
+      )}
 
-        {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            {error}
+      {/* In-Progress Appointments */}
+      <div>
+        {inProgressAppointments.length === 0 ? (
+          <Card className="p-8 text-center">
+            <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <p className="text-gray-600">No jobs in progress</p>
+            <p className="text-gray-500 text-sm mt-2">
+              Accept scheduled appointments from the dashboard to start working
+              on them
+            </p>
+          </Card>
+        ) : (
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ID
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Time
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Service
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Vehicle Model
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Vehicle Number
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Details
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {inProgressAppointments.map((appointment) => (
+                  <tr key={appointment.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      #{appointment.id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                        <span className="text-sm text-gray-900">
+                          {formatDate(appointment.appointmentDateTime)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <Clock className="h-4 w-4 text-gray-400 mr-2" />
+                        <span className="text-sm text-gray-900">
+                          {formatTime(appointment.appointmentDateTime)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-medium text-gray-900">
+                        {appointment.service?.name || "N/A"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <Car className="h-4 w-4 text-gray-400 mr-2" />
+                        <span className="text-sm text-gray-900">
+                          {appointment.vehicle.model}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm font-mono text-gray-900 bg-gray-100 px-2 py-1 rounded">
+                        {appointment.vehicle.licensePlate}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <button
+                        onClick={() => handleViewDetails(appointment)}
+                        className="inline-flex items-center p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                        title="View Details"
+                      >
+                        <Eye className="h-5 w-5" />
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="relative inline-block text-left">
+                        <select
+                          value={appointment.status}
+                          onChange={(e) => {
+                            setPendingStatus(e.target.value);
+                            setPendingAppointmentId(appointment.id);
+                            setShowConfirm(true);
+                          }}
+                          disabled={actionLoading === appointment.id}
+                          className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                        >
+                          <option value="IN_PROGRESS">In Progress</option>
+                          <option value="AWAITING_PARTS">Awaiting Parts</option>
+                          <option value="COMPLETED">Completed</option>
+                        </select>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
-
-        {/* In-Progress Appointments */}
-        <div>
-          {inProgressAppointments.length === 0 ? (
-            <Card className="p-8 text-center">
-              <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <p className="text-gray-600">No jobs in progress</p>
-              <p className="text-gray-500 text-sm mt-2">
-                Accept scheduled appointments from the dashboard to start
-                working on them
-              </p>
-            </Card>
-          ) : (
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Time
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Service
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Vehicle Model
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Vehicle Number
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Details
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {inProgressAppointments.map((appointment) => (
-                    <tr key={appointment.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        #{appointment.id}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                          <span className="text-sm text-gray-900">
-                            {formatDate(appointment.appointmentDateTime)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Clock className="h-4 w-4 text-gray-400 mr-2" />
-                          <span className="text-sm text-gray-900">
-                            {formatTime(appointment.appointmentDateTime)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {appointment.service?.name || "N/A"}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Car className="h-4 w-4 text-gray-400 mr-2" />
-                          <span className="text-sm text-gray-900">
-                            {appointment.vehicle.model}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-mono text-gray-900 bg-gray-100 px-2 py-1 rounded">
-                          {appointment.vehicle.licensePlate}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <button
-                          onClick={() => handleViewDetails(appointment)}
-                          className="inline-flex items-center p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                          title="View Details"
-                        >
-                          <Eye className="h-5 w-5" />
-                        </button>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="relative inline-block text-left">
-                          {/* <select
-                            value={appointment.status}
-                            onChange={(e) =>
-                              handleStatusChange(appointment.id, e.target.value)
-                            }
-                            disabled={actionLoading === appointment.id}
-                            className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                          >
-                            <option value="IN_PROGRESS">In Progress</option>
-                            <option value="AWAITING_PARTS">Awaiting Parts</option>
-                            <option value="COMPLETED">Completed</option>
-                          </select> */}
-                          <select
-                            value={appointment.status}
-                            onChange={(e) => {
-                              setPendingStatus(e.target.value);
-                              setPendingAppointmentId(appointment.id);
-                              setShowConfirm(true);
-                            }}
-                            disabled={actionLoading === appointment.id}
-                            className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                          >
-                            <option value="IN_PROGRESS">In Progress</option>
-                            <option value="AWAITING_PARTS">
-                              Awaiting Parts
-                            </option>
-                            <option value="COMPLETED">Completed</option>
-                          </select>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Details Modal */}
