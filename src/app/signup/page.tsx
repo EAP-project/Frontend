@@ -178,7 +178,7 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-purple-50 mb-12">
       {/* Back Button */}
       <div className="p-6">
         <Button
@@ -194,17 +194,18 @@ export default function SignUpPage() {
         </Button>
       </div>
 
-      <div className="flex flex-1 items-center justify-center p-6">
+      <div className="flex flex-1 items-center justify-center p-0">
         <div className="w-full max-w-6xl">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 items-center">
             {/* Left Column with Illustration & Benefits */}
-            <div className="hidden lg:flex lg:flex-col lg:justify-center">
+            <div className="ml-6 mr-6 sm:ml-10 sm:mr-10 md:ml-10 md:mr-10  lg:ml-0 lg:mr-0 lg:flex lg:flex-col justify-center"
+            >
               <Image
-                src="/images/signup.jpg"
+                src="/images/signup2.png"
                 alt="Sign Up Illustration"
                 width={500}
                 height={400}
-                className="mb-8"
+                className="mt-0 mb-12 mx-auto lg:mx-0"
               />
               <h2 className="text-4xl font-bold text-purple-800 mb-6 xl:text-5xl">
                 Start managing your service center better
@@ -213,7 +214,7 @@ export default function SignUpPage() {
                 Join hundreds of service centers using AutoService to streamline
                 operations and delight customers.
               </p>
-              <div className="space-y-4">
+              <div className="space-y-4 mb-24">
                 {["Free 14-day trial", "Easy setup", "24/7 support"].map(
                   (text, i) => (
                     <div key={i} className="flex items-start gap-3">
@@ -239,7 +240,7 @@ export default function SignUpPage() {
             </div>
 
             {/* Right Column - Sign Up Form */}
-            <div className="flex flex-col justify-center">
+            <div className="flex flex-col justify-center ml-5 mr-5">
               <div className="text-center lg:text-left mb-8">
                 <h1 className="text-4xl font-bold text-purple-800 mb-3">
                   Create your account
@@ -482,25 +483,25 @@ export default function SignUpPage() {
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-gray-300"></div>
                   </div>
-                  <div className="relative flex justify-center text-sm">
+                  {/* <div className="relative flex justify-center text-sm">
                     <span className="px-4 bg-white text-purple-600">
                       Or sign up with
                     </span>
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Social Sign Up Buttons */}
-                <div className="grid grid-cols-1 gap-3">
+                {/* <div className="grid grid-cols-1 gap-3">
                   <Button
                     variant="outline"
                     className="h-12 rounded-xl border-2 border-purple-500 text-purple-600 hover:bg-gray-50 hover:text-black hover:border-black transition-colors"
                   >
                     Google
                   </Button>
-                </div>
+                </div> */}
 
                 {/* Terms */}
-                <p className="text-xs text-purple-600 text-center mt-6">
+                {/* <p className="text-xs text-purple-600 text-center mt-6">
                   By signing up, you agree to our{" "}
                   <Link
                     href="/terms"
@@ -515,7 +516,7 @@ export default function SignUpPage() {
                   >
                     Privacy Policy
                   </Link>
-                </p>
+                </p> */}
               </div>
 
               {/* Login Link */}
