@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
+import { Sidebar } from "@/components/Sidebar";
+import { Navbar } from "@/components/Navbar";
 
 export default function EmployeeLayout({
   children,
@@ -59,7 +60,10 @@ export default function EmployeeLayout({
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar role="employee" user={user} />
-      <main className="flex-1">{children}</main>
+      <div className="flex-1 flex flex-col">
+        <Navbar user={user} />
+        <main className="flex-1">{children}</main>
+      </div>
     </div>
   );
 }
