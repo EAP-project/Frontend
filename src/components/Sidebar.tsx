@@ -86,7 +86,7 @@ const navItems: Record<string, NavItem[]> = {
     },
     {
       label: "Add Service",
-      href: "/admin/addservice",
+      href: "/add-service",
       icon: <Wrench className="h-5 w-5" />,
     },
     {
