@@ -39,6 +39,10 @@ export default function EmployeeDashboard() {
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<null | {
+    type: "accept" | "cancel";
+    id: number;
+  }>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -83,35 +87,59 @@ export default function EmployeeDashboard() {
     }
   };
 
+  // const handleAccept = async (appointmentId: number) => {
+  //   try {
+  //     setActionLoading(appointmentId);
+  //     await acceptAppointment(appointmentId);
+  //     await loadData(); // Reload data
+  //   } catch (err) {
+  //     console.error("Failed to accept appointment:", err);
+  //     alert(
+  //       err instanceof Error ? err.message : "Failed to accept appointment"
+  //     );
+  //   } finally {
+  //     setActionLoading(null);
+  //   }
+  // };
+
+  // const handleCancel = async (appointmentId: number) => {
+  //   if (!confirm("Are you sure you want to cancel this appointment?")) {
+  //     return;
+  //   }
+
+  //   try {
+  //     setActionLoading(appointmentId);
+  //     await cancelAppointment(appointmentId);
+  //     await loadData(); // Reload data
+  //   } catch (err) {
+  //     console.error("Failed to cancel appointment:", err);
+  //     alert(
+  //       err instanceof Error ? err.message : "Failed to cancel appointment"
+  //     );
+  //   } finally {
+  //     setActionLoading(null);
+  //   }
+  // };
+
   const handleAccept = async (appointmentId: number) => {
     try {
       setActionLoading(appointmentId);
       await acceptAppointment(appointmentId);
-      await loadData(); // Reload data
+      await loadData();
     } catch (err) {
       console.error("Failed to accept appointment:", err);
-      alert(
-        err instanceof Error ? err.message : "Failed to accept appointment"
-      );
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleCancel = async (appointmentId: number) => {
-    if (!confirm("Are you sure you want to cancel this appointment?")) {
-      return;
-    }
-
     try {
       setActionLoading(appointmentId);
       await cancelAppointment(appointmentId);
-      await loadData(); // Reload data
+      await loadData();
     } catch (err) {
       console.error("Failed to cancel appointment:", err);
-      alert(
-        err instanceof Error ? err.message : "Failed to cancel appointment"
-      );
     } finally {
       setActionLoading(null);
     }
@@ -286,19 +314,30 @@ export default function EmployeeDashboard() {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
                           <button
-                            onClick={() => handleAccept(appointment.id)}
+                            onClick={() =>
+                              setConfirmAction({
+                                type: "accept",
+                                id: appointment.id,
+                              })
+                            }
                             disabled={actionLoading === appointment.id}
-                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
                           >
                             <CheckCircle className="h-4 w-4 mr-1" />
                             {actionLoading === appointment.id
                               ? "..."
                               : "Accept"}
                           </button>
+
                           <button
-                            onClick={() => handleCancel(appointment.id)}
+                            onClick={() =>
+                              setConfirmAction({
+                                type: "cancel",
+                                id: appointment.id,
+                              })
+                            }
                             disabled={actionLoading === appointment.id}
-                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
                           >
                             <XCircle className="h-4 w-4 mr-1" />
                             Cancel
@@ -570,7 +609,7 @@ export default function EmployeeDashboard() {
                 >
                   Close
                 </button>
-                {selectedAppointment.status === "SCHEDULED" && (
+                {/* {selectedAppointment.status === "SCHEDULED" && (
                   <>
                     <button
                       onClick={() => {
@@ -593,8 +632,45 @@ export default function EmployeeDashboard() {
                       Cancel
                     </button>
                   </>
-                )}
+                )} */}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmAction && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-2xl w-80">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              {confirmAction.type === "accept"
+                ? "Are you sure you want to accept?"
+                : "Are you sure you want to cancel?"}
+            </h2>
+
+            <div className="flex justify-end gap-3">
+              {/* Cancel button */}
+              <button
+                onClick={() => setConfirmAction(null)}
+                className="px-4 py-2 rounded-md border text-gray-700 hover:bg-gray-100"
+              >
+                No
+              </button>
+
+              {/* Yes button */}
+              <button
+                onClick={() => {
+                  if (confirmAction.type === "accept") {
+                    handleAccept(confirmAction.id);
+                  } else {
+                    handleCancel(confirmAction.id);
+                  }
+                  setConfirmAction(null);
+                }}
+                className="px-4 py-2 rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+              >
+                Yes
+              </button>
             </div>
           </div>
         </div>

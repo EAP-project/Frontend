@@ -32,6 +32,11 @@ export default function MyJobsPage() {
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState("");
+  const [pendingAppointmentId, setPendingAppointmentId] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -113,22 +118,63 @@ export default function MyJobsPage() {
     setSelectedAppointment(null);
   };
 
-  const handleStatusChange = async (
-    appointmentId: number,
-    newStatus: string
-  ) => {
+  interface ConfirmationModalProps {
+    isOpen: boolean;
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+  }
+
+  const ConfirmationModal = ({
+    isOpen,
+    message,
+    onConfirm,
+    onCancel,
+  }: ConfirmationModalProps) => {
+    if (!isOpen) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="bg-white/90 p-6 rounded-lg shadow-xl w-80 border border-gray-200 backdrop-blur-md">
+          <p className="text-sm font-medium text-gray-700 mb-4">{message}</p>
+
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={onCancel}
+              className="px-3 py-1.5 text-sm rounded-md bg-gray-200 hover:bg-gray-300"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="px-3 py-1.5 text-sm rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const confirmStatusChange = async () => {
+    if (!pendingAppointmentId) return;
+
+    setShowConfirm(false);
+
     try {
-      setActionLoading(appointmentId);
+      setActionLoading(pendingAppointmentId);
+
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `http://localhost:8080/api/appointments/${appointmentId}/status`,
+        `http://localhost:8080/api/appointments/${pendingAppointmentId}/status`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ status: newStatus }),
+          body: JSON.stringify({ status: pendingStatus }),
         }
       );
 
@@ -136,14 +182,48 @@ export default function MyJobsPage() {
         throw new Error("Failed to update status");
       }
 
-      await loadData(); // Reload data
+      await loadData();
     } catch (err) {
       console.error("Failed to update status:", err);
       setError(err instanceof Error ? err.message : "Failed to update status");
     } finally {
       setActionLoading(null);
+      setPendingAppointmentId(null);
+      setPendingStatus("");
     }
   };
+
+  // const handleStatusChange = async (
+  //   appointmentId: number,
+  //   newStatus: string
+  // ) => {
+  //   try {
+  //     setActionLoading(appointmentId);
+  //     const token = localStorage.getItem("token");
+  //     const response = await fetch(
+  //       `http://localhost:8080/api/appointments/${appointmentId}/status`,
+  //       {
+  //         method: "PUT",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //         body: JSON.stringify({ status: newStatus }),
+  //       }
+  //     );
+
+  //     if (!response.ok) {
+  //       throw new Error("Failed to update status");
+  //     }
+
+  //     await loadData(); // Reload data
+  //   } catch (err) {
+  //     console.error("Failed to update status:", err);
+  //     setError(err instanceof Error ? err.message : "Failed to update status");
+  //   } finally {
+  //     setActionLoading(null);
+  //   }
+  // };
 
   if (!user || loading) {
     return (
@@ -270,11 +350,25 @@ export default function MyJobsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="relative inline-block text-left">
-                          <select
+                          {/* <select
                             value={appointment.status}
                             onChange={(e) =>
                               handleStatusChange(appointment.id, e.target.value)
                             }
+                            disabled={actionLoading === appointment.id}
+                            className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                          >
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="AWAITING_PARTS">Awaiting Parts</option>
+                            <option value="COMPLETED">Completed</option>
+                          </select> */}
+                          <select
+                            value={appointment.status}
+                            onChange={(e) => {
+                              setPendingStatus(e.target.value);
+                              setPendingAppointmentId(appointment.id);
+                              setShowConfirm(true);
+                            }}
                             disabled={actionLoading === appointment.id}
                             className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                           >
@@ -546,6 +640,16 @@ export default function MyJobsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={showConfirm}
+        message={`Are you sure you want to change status to "${pendingStatus.replace(
+          "_",
+          " "
+        )}"?`}
+        onConfirm={confirmStatusChange}
+        onCancel={() => setShowConfirm(false)}
+      />
     </div>
   );
 }
