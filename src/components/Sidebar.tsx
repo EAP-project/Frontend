@@ -61,11 +61,11 @@ const navItems: Record<string, NavItem[]> = {
       href: "/service-history",
       icon: <FileText className="h-5 w-5" />,
     },
-    {
+    /* {
       label: "Profile",
       href: "/profile",
       icon: <User className="h-5 w-5" />,
-    },
+    },*/
   ],
   admin: [
     {
@@ -83,16 +83,16 @@ const navItems: Record<string, NavItem[]> = {
       href: "/admin/manage-services",
       icon: <Wrench className="h-5 w-5" />,
     },
-    {
+    /*{
       label: "Add Service",
       href: "/admin/addservice",
       icon: <Wrench className="h-5 w-5" />,
-    },
-    {
+    },*/
+    /* {
       label: "Users",
       href: "/admin/users",
       icon: <Users className="h-5 w-5" />,
-    },
+    },*/
     {
       label: "Appointments",
       href: "/admin/appointments",
@@ -108,11 +108,11 @@ const navItems: Record<string, NavItem[]> = {
       href: "/admin/history",
       icon: <FileText className="h-5 w-5" />,
     },
-    {
+    /*{
       label: "Settings",
       href: "/admin/settings",
       icon: <Settings className="h-5 w-5" />,
-    },
+    },*/
   ],
   employee: [
     {
@@ -135,11 +135,11 @@ const navItems: Record<string, NavItem[]> = {
       href: "/employee/completed",
       icon: <CheckCircle className="h-5 w-5" />,
     },
-    {
+    /* {
       label: "Appointments",
       href: "/employee/appointments",
       icon: <Calendar className="h-5 w-5" />,
-    },
+    },*/
     {
       label: "Time Logs",
       href: "/employee/time-logs",
