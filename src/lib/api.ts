@@ -431,6 +431,7 @@ export interface Appointment {
   id: number;
   vehicle: Vehicle;
   service: Service;
+  services?: Service[]; // For multi-service appointments
   appointmentDateTime: string;
   customerNotes?: string;
   technicianNotes?: string;

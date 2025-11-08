@@ -28,6 +28,7 @@ export default function AdminAppointmentsPage() {
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showServicesModal, setShowServicesModal] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -219,12 +220,37 @@ export default function AdminAppointmentsPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex items-center">
-                            <Wrench className="h-4 w-4 text-gray-400 mr-2" />
-                            <span className="text-sm font-medium text-gray-900">
-                              {appointment.service?.name || "N/A"}
-                            </span>
-                          </div>
+                          {appointment.services &&
+                          appointment.services.length > 0 ? (
+                            <div>
+                              <div className="flex items-center mb-1">
+                                <Wrench className="h-4 w-4 text-gray-400 mr-2" />
+                                <span className="text-sm font-medium text-gray-900">
+                                  {appointment.services.length} Service
+                                  {appointment.services.length > 1
+                                    ? "s"
+                                    : ""}{" "}
+                                  Selected
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  setSelectedAppointment(appointment);
+                                  setShowServicesModal(true);
+                                }}
+                                className="text-xs text-blue-600 hover:text-blue-800 underline ml-6"
+                              >
+                                View Services →
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center">
+                              <Wrench className="h-4 w-4 text-gray-400 mr-2" />
+                              <span className="text-sm font-medium text-gray-900">
+                                {appointment.service?.name || "N/A"}
+                              </span>
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
@@ -263,141 +289,389 @@ export default function AdminAppointmentsPage() {
 
         {/* Details Modal */}
         {showDetailsModal && selectedAppointment && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40">
-            <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto relative z-50">
-              <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Appointment Details - #{selectedAppointment.id}
-                </h3>
-                <button
-                  onClick={() => setShowDetailsModal(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+              {/* Background overlay */}
+              <div
+                className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+                onClick={() => setShowDetailsModal(false)}
+              ></div>
 
-              <div className="px-6 py-4 space-y-4">
-                {/* Customer Information */}
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <h4 className="text-sm font-semibold text-blue-900 mb-2">
-                    Customer Information
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs text-blue-700 uppercase">
-                        Name
-                      </label>
-                      <p className="text-sm font-medium text-blue-900">
-                        {selectedAppointment.vehicle?.owner?.firstName}{" "}
-                        {selectedAppointment.vehicle?.owner?.lastName}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-xs text-blue-700 uppercase">
-                        Email
-                      </label>
-                      <p className="text-sm text-blue-900">
-                        {selectedAppointment.vehicle?.owner?.email}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-xs text-blue-700 uppercase">
-                        Phone
-                      </label>
-                      <p className="text-sm text-blue-900">
-                        {selectedAppointment.vehicle?.owner?.phoneNumber ||
-                          "N/A"}
-                      </p>
-                    </div>
+              {/* This element is to trick the browser into centering the modal contents. */}
+              <span
+                className="hidden sm:inline-block sm:align-middle sm:h-screen"
+                aria-hidden="true"
+              >
+                &#8203;
+              </span>
+
+              {/* Modal panel */}
+              <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full z-50">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-white">
+                      Appointment Details - #{selectedAppointment.id}
+                    </h3>
+                    <button
+                      onClick={() => setShowDetailsModal(false)}
+                      className="text-white hover:text-gray-200 transition-colors"
+                    >
+                      <X className="h-6 w-6" />
+                    </button>
                   </div>
                 </div>
 
-                {/* Appointment Information */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs text-gray-500 uppercase">
-                      Service Name
-                    </label>
-                    <p className="text-sm font-medium text-gray-900">
-                      {selectedAppointment.service?.name || "N/A"}
-                    </p>
-                  </div>
+                {/* Content */}
+                <div className="px-6 py-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Appointment Information */}
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider border-b pb-2">
+                        Appointment Information
+                      </h4>
 
-                  <div>
-                    <label className="text-xs text-gray-500 uppercase">
-                      Status
-                    </label>
-                    <p className="text-sm">
-                      {selectedAppointment.status &&
-                        getStatusBadge(selectedAppointment.status)}
-                    </p>
-                  </div>
+                      <div>
+                        <label className="text-xs text-gray-500 uppercase">
+                          Appointment ID
+                        </label>
+                        <p className="text-sm font-medium text-gray-900">
+                          #{selectedAppointment.id}
+                        </p>
+                      </div>
 
-                  <div>
-                    <label className="text-xs text-gray-500 uppercase">
-                      Vehicle
-                    </label>
-                    <p className="text-sm font-medium text-gray-900">
-                      {selectedAppointment.vehicle?.model} -{" "}
-                      {selectedAppointment.vehicle?.year}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {selectedAppointment.vehicle?.licensePlate}
-                    </p>
-                  </div>
+                      <div>
+                        <label className="text-xs text-gray-500 uppercase">
+                          Date
+                        </label>
+                        <p className="text-sm font-medium text-gray-900">
+                          {new Date(
+                            selectedAppointment.appointmentDateTime
+                          ).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </p>
+                      </div>
 
-                  <div>
-                    <label className="text-xs text-gray-500 uppercase">
-                      Date & Time
-                    </label>
-                    <p className="text-sm font-medium text-gray-900">
-                      {formatDateTime(selectedAppointment.appointmentDateTime)}
-                    </p>
-                  </div>
-                </div>
+                      <div>
+                        <label className="text-xs text-gray-500 uppercase">
+                          Time
+                        </label>
+                        <p className="text-sm font-medium text-gray-900">
+                          {new Date(
+                            selectedAppointment.appointmentDateTime
+                          ).toLocaleTimeString("en-US", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
 
-                {/* Assigned Employees */}
-                {selectedAppointment.assignedEmployees &&
-                  selectedAppointment.assignedEmployees.length > 0 && (
-                    <div>
-                      <label className="text-xs text-gray-500 uppercase">
-                        Assigned Employees
-                      </label>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {selectedAppointment.assignedEmployees.map((emp) => (
+                      <div>
+                        <label className="text-xs text-gray-500 uppercase">
+                          Status
+                        </label>
+                        <p className="text-sm">
                           <span
-                            key={emp.id}
-                            className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
+                            className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                              selectedAppointment.status === "SCHEDULED"
+                                ? "bg-blue-100 text-blue-800"
+                                : selectedAppointment.status === "IN_PROGRESS"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : selectedAppointment.status === "COMPLETED"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-gray-100 text-gray-800"
+                            }`}
                           >
-                            {emp.firstName} {emp.lastName}
+                            {selectedAppointment.status}
                           </span>
-                        ))}
+                        </p>
                       </div>
                     </div>
+
+                    {/* Service Information */}
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider border-b pb-2">
+                        Service Information
+                      </h4>
+
+                      {selectedAppointment.services &&
+                      selectedAppointment.services.length > 0 ? (
+                        <div>
+                          <label className="text-xs text-gray-500 uppercase">
+                            Selected Services (
+                            {selectedAppointment.services.length})
+                          </label>
+                          <div className="mt-2 space-y-2">
+                            {selectedAppointment.services.map(
+                              (service, index) => (
+                                <div
+                                  key={service.id}
+                                  className="bg-gray-50 p-2 rounded border border-gray-200"
+                                >
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {index + 1}. {service.name}
+                                  </p>
+                                </div>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="text-xs text-gray-500 uppercase">
+                            Service Name
+                          </label>
+                          <div className="mt-2 bg-gray-50 p-2 rounded border border-gray-200">
+                            <p className="text-sm font-medium text-gray-900">
+                              {selectedAppointment.service?.name || "N/A"}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Vehicle Information */}
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider border-b pb-2">
+                        Vehicle Information
+                      </h4>
+
+                      <div>
+                        <label className="text-xs text-gray-500 uppercase">
+                          Model
+                        </label>
+                        <p className="text-sm font-medium text-gray-900">
+                          {selectedAppointment.vehicle?.model}
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-gray-500 uppercase">
+                          Year
+                        </label>
+                        <p className="text-sm font-medium text-gray-900">
+                          {selectedAppointment.vehicle?.year}
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-gray-500 uppercase">
+                          License Plate
+                        </label>
+                        <p className="text-sm font-mono font-medium text-gray-900 bg-gray-100 px-2 py-1 rounded inline-block">
+                          {selectedAppointment.vehicle?.licensePlate}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Customer Information */}
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider border-b pb-2">
+                        Customer Information
+                      </h4>
+
+                      <div>
+                        <label className="text-xs text-gray-500 uppercase">
+                          Name
+                        </label>
+                        <p className="text-sm font-medium text-gray-900">
+                          {selectedAppointment.vehicle?.owner?.firstName}{" "}
+                          {selectedAppointment.vehicle?.owner?.lastName}
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-gray-500 uppercase">
+                          Email
+                        </label>
+                        <p className="text-sm text-gray-700">
+                          {selectedAppointment.vehicle?.owner?.email}
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-gray-500 uppercase">
+                          Customer Notes
+                        </label>
+                        {selectedAppointment.customerNotes ? (
+                          <p className="text-sm text-gray-700 bg-yellow-50 p-3 rounded border border-yellow-200 mt-1">
+                            {selectedAppointment.customerNotes}
+                          </p>
+                        ) : (
+                          <p className="text-sm text-gray-500 italic mt-1">
+                            No notes provided
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Assigned Employees Section */}
+                  {selectedAppointment.assignedEmployees &&
+                    selectedAppointment.assignedEmployees.length > 0 && (
+                      <div className="mt-6 pt-6 border-t">
+                        <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">
+                          Assigned Employees
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedAppointment.assignedEmployees.map((emp) => (
+                            <span
+                              key={emp.id}
+                              className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                            >
+                              {emp.firstName} {emp.lastName}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Additional Information */}
+                  {(selectedAppointment.createdAt ||
+                    selectedAppointment.updatedAt ||
+                    selectedAppointment.technicianNotes) && (
+                    <div className="mt-6 pt-6 border-t">
+                      <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">
+                        Additional Information
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        {selectedAppointment.createdAt && (
+                          <div>
+                            <label className="text-xs text-gray-500 uppercase">
+                              Created At
+                            </label>
+                            <p className="text-sm text-gray-700">
+                              {new Date(
+                                selectedAppointment.createdAt
+                              ).toLocaleString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          </div>
+                        )}
+                        {selectedAppointment.updatedAt && (
+                          <div>
+                            <label className="text-xs text-gray-500 uppercase">
+                              Last Updated
+                            </label>
+                            <p className="text-sm text-gray-700">
+                              {new Date(
+                                selectedAppointment.updatedAt
+                              ).toLocaleString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      {selectedAppointment.technicianNotes && (
+                        <div className="mt-4">
+                          <label className="text-xs text-gray-500 uppercase">
+                            Technician Notes
+                          </label>
+                          <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded border border-gray-200 mt-1">
+                            {selectedAppointment.technicianNotes}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   )}
+                </div>
 
-                {selectedAppointment.technicianNotes && (
-                  <div>
-                    <label className="text-xs text-gray-500 uppercase">
-                      Technician Notes
-                    </label>
-                    <p className="text-sm text-gray-700 mt-1 bg-gray-50 p-3 rounded">
-                      {selectedAppointment.technicianNotes}
-                    </p>
-                  </div>
-                )}
+                {/* Footer */}
+                <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3">
+                  <button
+                    onClick={() => setShowDetailsModal(false)}
+                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
-                {selectedAppointment.customerNotes && (
-                  <div>
-                    <label className="text-xs text-gray-500 uppercase">
-                      Customer Notes
-                    </label>
-                    <p className="text-sm text-gray-700 mt-1 bg-gray-50 p-3 rounded">
-                      {selectedAppointment.customerNotes}
-                    </p>
+        {/* Services Modal */}
+        {showServicesModal && selectedAppointment && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+              {/* Background overlay */}
+              <div
+                className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+                onClick={() => setShowServicesModal(false)}
+              ></div>
+
+              {/* This element is to trick the browser into centering the modal contents. */}
+              <span
+                className="hidden sm:inline-block sm:align-middle sm:h-screen"
+                aria-hidden="true"
+              >
+                &#8203;
+              </span>
+
+              {/* Modal panel */}
+              <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full z-50">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-white">
+                      Selected Services
+                    </h3>
+                    <button
+                      onClick={() => setShowServicesModal(false)}
+                      className="text-white hover:text-gray-200 transition-colors"
+                    >
+                      <X className="h-6 w-6" />
+                    </button>
                   </div>
-                )}
+                </div>
+
+                {/* Content */}
+                <div className="px-6 py-6">
+                  {selectedAppointment.services &&
+                  selectedAppointment.services.length > 0 ? (
+                    <div className="space-y-2">
+                      {selectedAppointment.services.map((service, index) => (
+                        <div
+                          key={service.id}
+                          className="bg-gray-50 p-3 rounded border border-gray-200"
+                        >
+                          <p className="text-sm font-medium text-gray-900">
+                            {index + 1}. {service.name}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                      <p className="text-sm font-medium text-gray-900">
+                        {selectedAppointment.service?.name || "N/A"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="bg-gray-50 px-6 py-4 flex justify-end">
+                  <button
+                    onClick={() => setShowServicesModal(false)}
+                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           </div>

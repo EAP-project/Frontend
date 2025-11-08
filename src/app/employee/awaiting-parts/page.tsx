@@ -29,6 +29,7 @@ export default function AwaitingPartsPage() {
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showServicesModal, setShowServicesModal] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<
     number | null
@@ -147,41 +148,40 @@ export default function AwaitingPartsPage() {
   //   }
   // };
 
-
   const confirmMoveToInProgress = async () => {
-  if (!selectedAppointmentId) return;
+    if (!selectedAppointmentId) return;
 
-  setShowPopup(false);
+    setShowPopup(false);
 
-  try {
-    setActionLoading(selectedAppointmentId);
-    const token = localStorage.getItem("token");
+    try {
+      setActionLoading(selectedAppointmentId);
+      const token = localStorage.getItem("token");
 
-    const response = await fetch(
-      `http://localhost:8080/api/appointments/${selectedAppointmentId}/status`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: "IN_PROGRESS" }),
+      const response = await fetch(
+        `http://localhost:8080/api/appointments/${selectedAppointmentId}/status`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ status: "IN_PROGRESS" }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update status");
       }
-    );
 
-    if (!response.ok) {
-      throw new Error("Failed to update status");
+      await loadData();
+    } catch (err) {
+      console.error("Failed to move to in progress:", err);
+      setError(err instanceof Error ? err.message : "Failed to update status");
+    } finally {
+      setActionLoading(null);
+      setSelectedAppointmentId(null);
     }
-
-    await loadData();
-  } catch (err) {
-    console.error("Failed to move to in progress:", err);
-    setError(err instanceof Error ? err.message : "Failed to update status");
-  } finally {
-    setActionLoading(null);
-    setSelectedAppointmentId(null);
-  }
-};
+  };
 
   interface CustomConfirmDialogProps {
     open: boolean;
@@ -190,7 +190,12 @@ export default function AwaitingPartsPage() {
     onCancel: () => void;
   }
 
-  const CustomConfirmDialog = ({ open, message, onConfirm, onCancel }: CustomConfirmDialogProps) => {
+  const CustomConfirmDialog = ({
+    open,
+    message,
+    onConfirm,
+    onCancel,
+  }: CustomConfirmDialogProps) => {
     if (!open) return null;
 
     return (
@@ -305,9 +310,29 @@ export default function AwaitingPartsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {appointment.service?.name || "N/A"}
-                      </div>
+                      {appointment.services &&
+                      appointment.services.length > 0 ? (
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 mb-1">
+                            {appointment.services.length} Service
+                            {appointment.services.length > 1 ? "s" : ""}{" "}
+                            Selected
+                          </div>
+                          <button
+                            onClick={() => {
+                              setSelectedAppointment(appointment);
+                              setShowServicesModal(true);
+                            }}
+                            className="text-xs text-blue-600 hover:text-blue-800 underline"
+                          >
+                            View Services →
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-sm font-medium text-gray-900">
+                          {appointment.service?.name || "N/A"}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -352,6 +377,7 @@ export default function AwaitingPartsPage() {
       </div>
 
       {/* Details Modal */}
+      {/* Details Modal */}
       {showDetailsModal && selectedAppointment && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
@@ -372,7 +398,7 @@ export default function AwaitingPartsPage() {
             {/* Modal panel */}
             <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full z-50">
               {/* Header */}
-              <div className="bg-gradient-to-r from-orange-600 to-red-600 px-6 py-4">
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-white">
                     Appointment Details - #{selectedAppointment.id}
@@ -427,7 +453,17 @@ export default function AwaitingPartsPage() {
                         Status
                       </label>
                       <p className="text-sm">
-                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                            selectedAppointment.status === "SCHEDULED"
+                              ? "bg-blue-100 text-blue-800"
+                              : selectedAppointment.status === "IN_PROGRESS"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : selectedAppointment.status === "COMPLETED"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
                           {selectedAppointment.status}
                         </span>
                       </p>
@@ -440,46 +476,38 @@ export default function AwaitingPartsPage() {
                       Service Information
                     </h4>
 
-                    <div>
-                      <label className="text-xs text-gray-500 uppercase">
-                        Service Name
-                      </label>
-                      <p className="text-sm font-medium text-gray-900">
-                        {selectedAppointment.service?.name || "N/A"}
-                      </p>
-                    </div>
-
-                    {selectedAppointment.service?.description && (
+                    {selectedAppointment.services &&
+                    selectedAppointment.services.length > 0 ? (
                       <div>
                         <label className="text-xs text-gray-500 uppercase">
-                          Description
+                          Selected Services (
+                          {selectedAppointment.services.length})
                         </label>
-                        <p className="text-sm text-gray-700">
-                          {selectedAppointment.service.description}
-                        </p>
+                        <div className="mt-2 space-y-2">
+                          {selectedAppointment.services.map(
+                            (service, index) => (
+                              <div
+                                key={service.id}
+                                className="bg-gray-50 p-2 rounded border border-gray-200"
+                              >
+                                <p className="text-sm font-medium text-gray-900">
+                                  {index + 1}. {service.name}
+                                </p>
+                              </div>
+                            )
+                          )}
+                        </div>
                       </div>
-                    )}
-
-                    {selectedAppointment.service?.estimatedCost && (
+                    ) : (
                       <div>
                         <label className="text-xs text-gray-500 uppercase">
-                          Estimated Cost
+                          Service Name
                         </label>
-                        <p className="text-sm font-medium text-green-600">
-                          ${selectedAppointment.service.estimatedCost}
-                        </p>
-                      </div>
-                    )}
-
-                    {selectedAppointment.service?.estimatedDurationMinutes && (
-                      <div>
-                        <label className="text-xs text-gray-500 uppercase">
-                          Estimated Duration
-                        </label>
-                        <p className="text-sm font-medium text-gray-900">
-                          {selectedAppointment.service.estimatedDurationMinutes}{" "}
-                          minutes
-                        </p>
+                        <div className="mt-2 bg-gray-50 p-2 rounded border border-gray-200">
+                          <p className="text-sm font-medium text-gray-900">
+                            {selectedAppointment.service?.name || "N/A"}
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -543,24 +571,134 @@ export default function AwaitingPartsPage() {
                       </p>
                     </div>
 
-                    {selectedAppointment.customerNotes && (
-                      <div>
-                        <label className="text-xs text-gray-500 uppercase">
-                          Customer Notes
-                        </label>
-                        <p className="text-sm text-gray-700 bg-yellow-50 p-3 rounded border border-yellow-200">
+                    <div>
+                      <label className="text-xs text-gray-500 uppercase">
+                        Customer Notes
+                      </label>
+                      {selectedAppointment.customerNotes ? (
+                        <p className="text-sm text-gray-700 bg-yellow-50 p-3 rounded border border-yellow-200 mt-1">
                           {selectedAppointment.customerNotes}
                         </p>
-                      </div>
-                    )}
+                      ) : (
+                        <p className="text-sm text-gray-500 italic mt-1">
+                          No notes provided
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
+
+                {/* Additional Information */}
+                {(selectedAppointment.createdAt ||
+                  selectedAppointment.updatedAt) && (
+                  <div className="mt-6 pt-6 border-t">
+                    <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">
+                      Additional Information
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      {selectedAppointment.createdAt && (
+                        <div>
+                          <label className="text-xs text-gray-500 uppercase">
+                            Created At
+                          </label>
+                          <p className="text-sm text-gray-700">
+                            {formatDateTime(selectedAppointment.createdAt)}
+                          </p>
+                        </div>
+                      )}
+                      {selectedAppointment.updatedAt && (
+                        <div>
+                          <label className="text-xs text-gray-500 uppercase">
+                            Last Updated
+                          </label>
+                          <p className="text-sm text-gray-700">
+                            {formatDateTime(selectedAppointment.updatedAt)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Footer */}
               <div className="bg-gray-50 px-6 py-4 flex justify-end space-x-3">
                 <button
                   onClick={closeModal}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Services Modal */}
+      {showServicesModal && selectedAppointment && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            {/* Background overlay */}
+            <div
+              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+              onClick={() => setShowServicesModal(false)}
+            ></div>
+
+            {/* This element is to trick the browser into centering the modal contents. */}
+            <span
+              className="hidden sm:inline-block sm:align-middle sm:h-screen"
+              aria-hidden="true"
+            >
+              &#8203;
+            </span>
+
+            {/* Modal panel */}
+            <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full z-50">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-white">
+                    Selected Services
+                  </h3>
+                  <button
+                    onClick={() => setShowServicesModal(false)}
+                    className="text-white hover:text-gray-200 transition-colors"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-6">
+                {selectedAppointment.services &&
+                selectedAppointment.services.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedAppointment.services.map((service, index) => (
+                      <div
+                        key={service.id}
+                        className="bg-gray-50 p-3 rounded border border-gray-200"
+                      >
+                        <p className="text-sm font-medium text-gray-900">
+                          {index + 1}. {service.name}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                    <p className="text-sm font-medium text-gray-900">
+                      {selectedAppointment.service?.name || "N/A"}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="bg-gray-50 px-6 py-4 flex justify-end">
+                <button
+                  onClick={() => setShowServicesModal(false)}
                   className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
                 >
                   Close

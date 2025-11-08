@@ -38,6 +38,7 @@ export default function EmployeeDashboard() {
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showServicesModal, setShowServicesModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState<null | {
     type: "accept" | "cancel";
     id: number;
@@ -179,8 +180,15 @@ export default function EmployeeDashboard() {
     console.log("Modal should be visible now. showDetailsModal:", true);
   };
 
+  const handleViewServices = (appointment: Appointment) => {
+    console.log("View services clicked for appointment:", appointment);
+    setSelectedAppointment(appointment);
+    setShowServicesModal(true);
+  };
+
   const closeModal = () => {
     setShowDetailsModal(false);
+    setShowServicesModal(false);
     setSelectedAppointment(null);
   };
 
@@ -279,9 +287,26 @@ export default function EmployeeDashboard() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {appointment.service?.name || "N/A"}
-                      </div>
+                      {appointment.services &&
+                      appointment.services.length > 0 ? (
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 mb-1">
+                            {appointment.services.length} Service
+                            {appointment.services.length > 1 ? "s" : ""}{" "}
+                            Selected
+                          </div>
+                          <button
+                            onClick={() => handleViewServices(appointment)}
+                            className="text-xs text-blue-600 hover:text-blue-800 underline"
+                          >
+                            View Services →
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-sm font-medium text-gray-900">
+                          {appointment.service?.name || "N/A"}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -308,7 +333,12 @@ export default function EmployeeDashboard() {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
                         <button
-                          onClick={() => setConfirmAction({ type: "accept", id: appointment.id })}
+                          onClick={() =>
+                            setConfirmAction({
+                              type: "accept",
+                              id: appointment.id,
+                            })
+                          }
                           disabled={actionLoading === appointment.id}
                           className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
                         >
@@ -316,7 +346,12 @@ export default function EmployeeDashboard() {
                           {actionLoading === appointment.id ? "..." : "Accept"}
                         </button>
                         <button
-                          onClick={() => setConfirmAction({ type: "cancel", id: appointment.id })}
+                          onClick={() =>
+                            setConfirmAction({
+                              type: "cancel",
+                              id: appointment.id,
+                            })
+                          }
                           disabled={actionLoading === appointment.id}
                           className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
                         >
@@ -432,46 +467,38 @@ export default function EmployeeDashboard() {
                       Service Information
                     </h4>
 
-                    <div>
-                      <label className="text-xs text-gray-500 uppercase">
-                        Service Name
-                      </label>
-                      <p className="text-sm font-medium text-gray-900">
-                        {selectedAppointment.service?.name || "N/A"}
-                      </p>
-                    </div>
-
-                    {selectedAppointment.service?.description && (
+                    {selectedAppointment.services &&
+                    selectedAppointment.services.length > 0 ? (
                       <div>
                         <label className="text-xs text-gray-500 uppercase">
-                          Description
+                          Selected Services (
+                          {selectedAppointment.services.length})
                         </label>
-                        <p className="text-sm text-gray-700">
-                          {selectedAppointment.service.description}
-                        </p>
+                        <div className="mt-2 space-y-2">
+                          {selectedAppointment.services.map(
+                            (service, index) => (
+                              <div
+                                key={service.id}
+                                className="bg-gray-50 p-2 rounded border border-gray-200"
+                              >
+                                <p className="text-sm font-medium text-gray-900">
+                                  {index + 1}. {service.name}
+                                </p>
+                              </div>
+                            )
+                          )}
+                        </div>
                       </div>
-                    )}
-
-                    {selectedAppointment.service?.estimatedCost && (
+                    ) : (
                       <div>
                         <label className="text-xs text-gray-500 uppercase">
-                          Estimated Cost
+                          Service Name
                         </label>
-                        <p className="text-sm font-medium text-green-600">
-                          ${selectedAppointment.service.estimatedCost}
-                        </p>
-                      </div>
-                    )}
-
-                    {selectedAppointment.service?.estimatedDurationMinutes && (
-                      <div>
-                        <label className="text-xs text-gray-500 uppercase">
-                          Estimated Duration
-                        </label>
-                        <p className="text-sm font-medium text-gray-900">
-                          {selectedAppointment.service.estimatedDurationMinutes}{" "}
-                          minutes
-                        </p>
+                        <div className="mt-2 bg-gray-50 p-2 rounded border border-gray-200">
+                          <p className="text-sm font-medium text-gray-900">
+                            {selectedAppointment.service?.name || "N/A"}
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -535,16 +562,20 @@ export default function EmployeeDashboard() {
                       </p>
                     </div>
 
-                    {selectedAppointment.customerNotes && (
-                      <div>
-                        <label className="text-xs text-gray-500 uppercase">
-                          Customer Notes
-                        </label>
-                        <p className="text-sm text-gray-700 bg-yellow-50 p-3 rounded border border-yellow-200">
+                    <div>
+                      <label className="text-xs text-gray-500 uppercase">
+                        Customer Notes
+                      </label>
+                      {selectedAppointment.customerNotes ? (
+                        <p className="text-sm text-gray-700 bg-yellow-50 p-3 rounded border border-yellow-200 mt-1">
                           {selectedAppointment.customerNotes}
                         </p>
-                      </div>
-                    )}
+                      ) : (
+                        <p className="text-sm text-gray-500 italic mt-1">
+                          No notes provided
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -589,30 +620,80 @@ export default function EmployeeDashboard() {
                 >
                   Close
                 </button>
-                {/* {selectedAppointment.status === "SCHEDULED" && (
-                  <>
-                    <button
-                      onClick={() => {
-                        handleAccept(selectedAppointment.id);
-                        closeModal();
-                      }}
-                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center"
-                    >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Accept
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleCancel(selectedAppointment.id);
-                        closeModal();
-                      }}
-                      className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center"
-                    >
-                      <XCircle className="h-4 w-4 mr-2" />
-                      Cancel
-                    </button>
-                  </>
-                )} */}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Services Modal */}
+      {showServicesModal && selectedAppointment && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            {/* Background overlay */}
+            <div
+              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+              onClick={closeModal}
+            ></div>
+
+            {/* This element is to trick the browser into centering the modal contents. */}
+            <span
+              className="hidden sm:inline-block sm:align-middle sm:h-screen"
+              aria-hidden="true"
+            >
+              &#8203;
+            </span>
+
+            {/* Modal panel */}
+            <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full z-50">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-white">
+                    Selected Services
+                  </h3>
+                  <button
+                    onClick={closeModal}
+                    className="text-white hover:text-gray-200 transition-colors"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-6">
+                {selectedAppointment.services &&
+                selectedAppointment.services.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedAppointment.services.map((service, index) => (
+                      <div
+                        key={service.id}
+                        className="bg-gray-50 p-3 rounded border border-gray-200"
+                      >
+                        <p className="text-sm font-medium text-gray-900">
+                          {index + 1}. {service.name}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                    <p className="text-sm font-medium text-gray-900">
+                      {selectedAppointment.service?.name || "N/A"}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="bg-gray-50 px-6 py-4 flex justify-end">
+                <button
+                  onClick={closeModal}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>
