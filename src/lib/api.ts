@@ -453,7 +453,8 @@ export async function deleteService(serviceId: number): Promise<void> {
 // Appointment APIs
 export interface AppointmentRequestDTO {
   vehicleId: number;
-  serviceId: number;
+  serviceId?: number; // Keep for backward compatibility
+  serviceIds?: number[]; // Support multiple services
   appointmentDateTime: string; // ISO format
   customerNotes?: string;
 }
@@ -461,7 +462,8 @@ export interface AppointmentRequestDTO {
 export interface Appointment {
   id: number;
   vehicle: Vehicle;
-  service: Service;
+  service: Service; // Keep for backward compatibility
+  services?: Service[]; // Multiple services support
   appointmentDateTime: string;
   customerNotes?: string;
   technicianNotes?: string;

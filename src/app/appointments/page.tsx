@@ -18,6 +18,7 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
+  X,
 } from "lucide-react";
 
 export default function AppointmentsPage() {
@@ -33,6 +34,9 @@ export default function AppointmentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("all");
   const [vehicleError, setVehicleError] = useState<string | null>(null);
+  const [showServicesModal, setShowServicesModal] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] =
+    useState<Appointment | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -449,11 +453,31 @@ export default function AppointmentsPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
                       {getStatusIcon(appointment.status || "")}
-                      <h3 className="text-lg font-bold text-gray-900">
-                        {appointment.service?.name ||
-                          appointment.service?.name ||
-                          "N/A"}
-                      </h3>
+                      <div className="flex-1">
+                        {appointment.services &&
+                        appointment.services.length > 0 ? (
+                          <div>
+                            <h3 className="text-lg font-bold text-gray-900">
+                              {appointment.services.length} Service
+                              {appointment.services.length > 1 ? "s" : ""}{" "}
+                              Selected
+                            </h3>
+                            <button
+                              onClick={() => {
+                                setSelectedAppointment(appointment);
+                                setShowServicesModal(true);
+                              }}
+                              className="text-sm text-blue-600 hover:text-blue-800 underline"
+                            >
+                              View Services →
+                            </button>
+                          </div>
+                        ) : (
+                          <h3 className="text-lg font-bold text-gray-900">
+                            {appointment.service?.name || "N/A"}
+                          </h3>
+                        )}
+                      </div>
                       <span
                         className={`text-xs px-3 py-1 rounded-full font-medium ${getStatusColor(
                           appointment.status || ""
@@ -544,6 +568,80 @@ export default function AppointmentsPage() {
           </div>
         )}
       </div>
+
+      {/* Services Modal */}
+      {showServicesModal && selectedAppointment && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            {/* Background overlay */}
+            <div
+              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+              onClick={() => setShowServicesModal(false)}
+            ></div>
+
+            {/* This element is to trick the browser into centering the modal contents. */}
+            <span
+              className="hidden sm:inline-block sm:align-middle sm:h-screen"
+              aria-hidden="true"
+            >
+              &#8203;
+            </span>
+
+            {/* Modal panel */}
+            <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full z-50">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-white">
+                    Selected Services
+                  </h3>
+                  <button
+                    onClick={() => setShowServicesModal(false)}
+                    className="text-white hover:text-gray-200 transition-colors"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-6">
+                {selectedAppointment.services &&
+                selectedAppointment.services.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedAppointment.services.map((service, index) => (
+                      <div
+                        key={service.id}
+                        className="bg-gray-50 p-3 rounded border border-gray-200"
+                      >
+                        <p className="text-sm font-medium text-gray-900">
+                          {index + 1}. {service.name}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                    <p className="text-sm font-medium text-gray-900">
+                      {selectedAppointment.service?.name || "N/A"}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="bg-gray-50 px-6 py-4 flex justify-end">
+                <button
+                  onClick={() => setShowServicesModal(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

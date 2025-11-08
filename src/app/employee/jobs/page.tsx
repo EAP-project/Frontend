@@ -31,6 +31,7 @@ export default function MyJobsPage() {
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showServicesModal, setShowServicesModal] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendingStatus, setPendingStatus] = useState("");
   const [pendingAppointmentId, setPendingAppointmentId] = useState<
@@ -285,9 +286,29 @@ export default function MyJobsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {appointment.service?.name || "N/A"}
-                      </div>
+                      {appointment.services &&
+                      appointment.services.length > 1 ? (
+                        <div className="flex flex-col gap-1">
+                          <div className="text-sm font-medium text-gray-900">
+                            {appointment.services.length} Services Selected
+                          </div>
+                          <button
+                            onClick={() => {
+                              setSelectedAppointment(appointment);
+                              setShowServicesModal(true);
+                            }}
+                            className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 w-fit"
+                          >
+                            View Services →
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-sm font-medium text-gray-900">
+                          {appointment.services?.[0]?.name ||
+                            appointment.service?.name ||
+                            "N/A"}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -584,6 +605,68 @@ export default function MyJobsPage() {
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Services Modal */}
+      {showServicesModal && selectedAppointment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4 flex justify-between items-center">
+              <h3 className="text-xl font-bold">Selected Services</h3>
+              <button
+                onClick={() => {
+                  setShowServicesModal(false);
+                  setSelectedAppointment(null);
+                }}
+                className="text-white hover:bg-white/20 rounded-full p-1 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Services List */}
+            <div className="p-6">
+              <div className="space-y-3">
+                {selectedAppointment.services &&
+                selectedAppointment.services.length > 0 ? (
+                  selectedAppointment.services.map((service, index) => (
+                    <div
+                      key={service.id}
+                      className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
+                    >
+                      <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">
+                          {service.name}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-gray-500 text-sm">No services found</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-gray-50 px-6 py-4 flex justify-end">
+              <button
+                onClick={() => {
+                  setShowServicesModal(false);
+                  setSelectedAppointment(null);
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

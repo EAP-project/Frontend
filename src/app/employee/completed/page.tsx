@@ -20,6 +20,7 @@ export default function CompletedPage() {
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showServicesModal, setShowServicesModal] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -186,9 +187,29 @@ export default function CompletedPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {appointment.service?.name || "N/A"}
-                      </div>
+                      {appointment.services &&
+                      appointment.services.length > 1 ? (
+                        <div className="flex flex-col gap-1">
+                          <div className="text-sm font-medium text-gray-900">
+                            {appointment.services.length} Services Selected
+                          </div>
+                          <button
+                            onClick={() => {
+                              setSelectedAppointment(appointment);
+                              setShowServicesModal(true);
+                            }}
+                            className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 w-fit"
+                          >
+                            View Services →
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-sm font-medium text-gray-900">
+                          {appointment.services?.[0]?.name ||
+                            appointment.service?.name ||
+                            "N/A"}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -226,6 +247,7 @@ export default function CompletedPage() {
       </div>
 
       {/* Details Modal */}
+      {/* Details Modal */}
       {showDetailsModal && selectedAppointment && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
@@ -246,7 +268,7 @@ export default function CompletedPage() {
             {/* Modal panel */}
             <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full z-50">
               {/* Header */}
-              <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-4">
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-white">
                     Appointment Details - #{selectedAppointment.id}
@@ -301,7 +323,17 @@ export default function CompletedPage() {
                         Status
                       </label>
                       <p className="text-sm">
-                        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                            selectedAppointment.status === "SCHEDULED"
+                              ? "bg-blue-100 text-blue-800"
+                              : selectedAppointment.status === "IN_PROGRESS"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : selectedAppointment.status === "COMPLETED"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
                           {selectedAppointment.status}
                         </span>
                       </p>
@@ -314,46 +346,38 @@ export default function CompletedPage() {
                       Service Information
                     </h4>
 
-                    <div>
-                      <label className="text-xs text-gray-500 uppercase">
-                        Service Name
-                      </label>
-                      <p className="text-sm font-medium text-gray-900">
-                        {selectedAppointment.service?.name || "N/A"}
-                      </p>
-                    </div>
-
-                    {selectedAppointment.service?.description && (
+                    {selectedAppointment.services &&
+                    selectedAppointment.services.length > 0 ? (
                       <div>
                         <label className="text-xs text-gray-500 uppercase">
-                          Description
+                          Selected Services (
+                          {selectedAppointment.services.length})
                         </label>
-                        <p className="text-sm text-gray-700">
-                          {selectedAppointment.service.description}
-                        </p>
+                        <div className="mt-2 space-y-2">
+                          {selectedAppointment.services.map(
+                            (service, index) => (
+                              <div
+                                key={service.id}
+                                className="bg-gray-50 p-2 rounded border border-gray-200"
+                              >
+                                <p className="text-sm font-medium text-gray-900">
+                                  {index + 1}. {service.name}
+                                </p>
+                              </div>
+                            )
+                          )}
+                        </div>
                       </div>
-                    )}
-
-                    {selectedAppointment.service?.estimatedCost && (
+                    ) : (
                       <div>
                         <label className="text-xs text-gray-500 uppercase">
-                          Estimated Cost
+                          Service Name
                         </label>
-                        <p className="text-sm font-medium text-green-600">
-                          ${selectedAppointment.service.estimatedCost}
-                        </p>
-                      </div>
-                    )}
-
-                    {selectedAppointment.service?.estimatedDurationMinutes && (
-                      <div>
-                        <label className="text-xs text-gray-500 uppercase">
-                          Estimated Duration
-                        </label>
-                        <p className="text-sm font-medium text-gray-900">
-                          {selectedAppointment.service.estimatedDurationMinutes}{" "}
-                          minutes
-                        </p>
+                        <div className="mt-2 bg-gray-50 p-2 rounded border border-gray-200">
+                          <p className="text-sm font-medium text-gray-900">
+                            {selectedAppointment.service?.name || "N/A"}
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -417,18 +441,54 @@ export default function CompletedPage() {
                       </p>
                     </div>
 
-                    {selectedAppointment.customerNotes && (
-                      <div>
-                        <label className="text-xs text-gray-500 uppercase">
-                          Customer Notes
-                        </label>
-                        <p className="text-sm text-gray-700 bg-yellow-50 p-3 rounded border border-yellow-200">
+                    <div>
+                      <label className="text-xs text-gray-500 uppercase">
+                        Customer Notes
+                      </label>
+                      {selectedAppointment.customerNotes ? (
+                        <p className="text-sm text-gray-700 bg-yellow-50 p-3 rounded border border-yellow-200 mt-1">
                           {selectedAppointment.customerNotes}
                         </p>
-                      </div>
-                    )}
+                      ) : (
+                        <p className="text-sm text-gray-500 italic mt-1">
+                          No notes provided
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
+
+                {/* Additional Information */}
+                {(selectedAppointment.createdAt ||
+                  selectedAppointment.updatedAt) && (
+                  <div className="mt-6 pt-6 border-t">
+                    <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">
+                      Additional Information
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      {selectedAppointment.createdAt && (
+                        <div>
+                          <label className="text-xs text-gray-500 uppercase">
+                            Created At
+                          </label>
+                          <p className="text-sm text-gray-700">
+                            {formatDateTime(selectedAppointment.createdAt)}
+                          </p>
+                        </div>
+                      )}
+                      {selectedAppointment.updatedAt && (
+                        <div>
+                          <label className="text-xs text-gray-500 uppercase">
+                            Last Updated
+                          </label>
+                          <p className="text-sm text-gray-700">
+                            {formatDateTime(selectedAppointment.updatedAt)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Footer */}
@@ -440,6 +500,68 @@ export default function CompletedPage() {
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Services Modal */}
+      {showServicesModal && selectedAppointment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4 flex justify-between items-center">
+              <h3 className="text-xl font-bold">Selected Services</h3>
+              <button
+                onClick={() => {
+                  setShowServicesModal(false);
+                  setSelectedAppointment(null);
+                }}
+                className="text-white hover:bg-white/20 rounded-full p-1 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Services List */}
+            <div className="p-6">
+              <div className="space-y-3">
+                {selectedAppointment.services &&
+                selectedAppointment.services.length > 0 ? (
+                  selectedAppointment.services.map((service, index) => (
+                    <div
+                      key={service.id}
+                      className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
+                    >
+                      <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">
+                          {service.name}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-gray-500 text-sm">No services found</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-gray-50 px-6 py-4 flex justify-end">
+              <button
+                onClick={() => {
+                  setShowServicesModal(false);
+                  setSelectedAppointment(null);
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
