@@ -222,7 +222,25 @@ export default function AdminAppointmentsPage() {
                           <div className="flex items-center">
                             <Wrench className="h-4 w-4 text-gray-400 mr-2" />
                             <span className="text-sm font-medium text-gray-900">
-                              {appointment.service?.name || "N/A"}
+                              {appointment.services &&
+                              appointment.services.length > 0 ? (
+                                appointment.services.length > 1 ? (
+                                  <div>
+                                    <div>{appointment.services[0].name}</div>
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      +{appointment.services.length - 1} more
+                                      service
+                                      {appointment.services.length - 1 > 1
+                                        ? "s"
+                                        : ""}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  appointment.services[0].name
+                                )
+                              ) : (
+                                appointment.service?.name || "N/A"
+                              )}
                             </span>
                           </div>
                         </td>
@@ -315,14 +333,81 @@ export default function AdminAppointmentsPage() {
 
                 {/* Appointment Information */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs text-gray-500 uppercase">
-                      Service Name
-                    </label>
-                    <p className="text-sm font-medium text-gray-900">
-                      {selectedAppointment.service?.name || "N/A"}
-                    </p>
-                  </div>
+                  {selectedAppointment.services &&
+                  selectedAppointment.services.length > 0 ? (
+                    <div className="col-span-2">
+                      <label className="text-xs text-gray-500 uppercase mb-2 block">
+                        Selected Services ({selectedAppointment.services.length}
+                        )
+                      </label>
+                      <div className="space-y-3">
+                        {selectedAppointment.services.map((service, index) => (
+                          <div
+                            key={service.id}
+                            className="p-3 bg-gray-50 rounded-lg border border-gray-200"
+                          >
+                            <div className="font-medium text-gray-900 mb-1">
+                              {index + 1}. {service.name}
+                            </div>
+                            {service.description && (
+                              <div className="text-xs text-gray-600 mb-2">
+                                {service.description}
+                              </div>
+                            )}
+                            <div className="flex justify-between items-center text-xs">
+                              {service.estimatedCost && (
+                                <span className="text-green-600 font-medium">
+                                  ${service.estimatedCost.toFixed(2)}
+                                </span>
+                              )}
+                              {service.estimatedDurationMinutes && (
+                                <span className="text-gray-600">
+                                  {service.estimatedDurationMinutes} min
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Total Summary */}
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-semibold text-gray-900">
+                            Total
+                          </span>
+                          <div className="text-right">
+                            <div className="text-sm font-semibold text-green-600">
+                              $
+                              {selectedAppointment.services
+                                .reduce(
+                                  (sum, s) => sum + (s.estimatedCost || 0),
+                                  0
+                                )
+                                .toFixed(2)}
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              {selectedAppointment.services.reduce(
+                                (sum, s) =>
+                                  sum + (s.estimatedDurationMinutes || 0),
+                                0
+                              )}{" "}
+                              min
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="text-xs text-gray-500 uppercase">
+                        Service Name
+                      </label>
+                      <p className="text-sm font-medium text-gray-900">
+                        {selectedAppointment.service?.name || "N/A"}
+                      </p>
+                    </div>
+                  )}
 
                   <div>
                     <label className="text-xs text-gray-500 uppercase">
