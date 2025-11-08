@@ -75,6 +75,12 @@ export default function ServicesManagementPage() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
+  // Confirmation modal state for save/cancel/delete actions
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmType, setConfirmType] = useState<"cancel" | "create" | "update" | "delete" | null>(null);
+  const [pendingServiceData, setPendingServiceData] = useState<ServiceDTO | null>(null);
+  const [pendingDeleteService, setPendingDeleteService] = useState<{ id: number; name: string } | null>(null);
+
   // Common State
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -143,6 +149,7 @@ export default function ServicesManagementPage() {
     serviceId: number,
     serviceName: string
   ) => {
+    // Legacy path that still uses window.confirm. Prefer modal-driven flow.
     if (!confirm(`Are you sure you want to delete "${serviceName}"?`)) {
       return;
     }
@@ -159,6 +166,26 @@ export default function ServicesManagementPage() {
       setError(err instanceof Error ? err.message : "Failed to delete service");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const performDeleteService = async () => {
+    if (!pendingDeleteService) return;
+    try {
+      setLoading(true);
+      setError(null);
+      await deleteService(pendingDeleteService.id);
+      await loadServices();
+      setSuccess(`Service "${pendingDeleteService.name}" has been deleted successfully!`);
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      console.error("Failed to delete service:", err);
+      setError(err instanceof Error ? err.message : "Failed to delete service");
+    } finally {
+      setLoading(false);
+      setShowConfirm(false);
+      setConfirmType(null);
+      setPendingDeleteService(null);
     }
   };
 
@@ -274,7 +301,6 @@ export default function ServicesManagementPage() {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-
     if (
       !formData.name ||
       !formData.estimatedCost ||
@@ -285,26 +311,35 @@ export default function ServicesManagementPage() {
       return;
     }
 
+    // Prepare data and show confirmation modal
+    const serviceData: ServiceDTO = {
+      name: formData.name,
+      description: formData.description,
+      estimatedCost: parseFloat(formData.estimatedCost),
+      estimatedDurationMinutes: parseInt(formData.estimatedDurationMinutes),
+      categoryId: parseInt(formData.categoryId),
+    };
+
+    setPendingServiceData(serviceData);
+    setConfirmType(editingService ? "update" : "create");
+    setShowConfirm(true);
+  };
+
+  const performSaveService = async () => {
+    if (!pendingServiceData) return;
     try {
       setLoading(true);
-
-      const serviceData: ServiceDTO = {
-        name: formData.name,
-        description: formData.description,
-        estimatedCost: parseFloat(formData.estimatedCost),
-        estimatedDurationMinutes: parseInt(formData.estimatedDurationMinutes),
-        categoryId: parseInt(formData.categoryId),
-      };
+      setError(null);
 
       if (editingService) {
         await updateService(
           editingService.id,
-          serviceData,
+          pendingServiceData,
           selectedImage || undefined
         );
         setSuccess("Service updated successfully!");
       } else {
-        await createService(serviceData, selectedImage || undefined);
+        await createService(pendingServiceData, selectedImage || undefined);
         setSuccess("Service created successfully!");
       }
 
@@ -323,6 +358,9 @@ export default function ServicesManagementPage() {
       );
     } finally {
       setLoading(false);
+      setShowConfirm(false);
+      setConfirmType(null);
+      setPendingServiceData(null);
     }
   };
 
@@ -573,7 +611,10 @@ export default function ServicesManagementPage() {
                 </Button>
                 <Button
                   type="button"
-                  onClick={handleCancelForm}
+                  onClick={() => {
+                    setConfirmType("cancel");
+                    setShowConfirm(true);
+                  }}
                   className="flex-1 bg-gray-500 hover:bg-gray-600 text-white"
                 >
                   Cancel
@@ -760,7 +801,10 @@ export default function ServicesManagementPage() {
                 </Button>
                 <Button
                   type="button"
-                  onClick={handleCancelForm}
+                  onClick={() => {
+                    setConfirmType("cancel");
+                    setShowConfirm(true);
+                  }}
                   className="flex-1 bg-gray-500 hover:bg-gray-600 text-white"
                 >
                   Cancel
@@ -1013,12 +1057,11 @@ export default function ServicesManagementPage() {
                                             Edit
                                           </button>
                                           <button
-                                            onClick={() =>
-                                              handleDeleteService(
-                                                service.id,
-                                                service.name
-                                              )
-                                            }
+                                            onClick={() => {
+                                              setPendingDeleteService({ id: service.id, name: service.name });
+                                              setConfirmType("delete");
+                                              setShowConfirm(true);
+                                            }}
                                             disabled={loading}
                                             className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg font-medium transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                           >
@@ -1123,7 +1166,52 @@ export default function ServicesManagementPage() {
             )}
           </>
         )}
-      </div>
+      {/* Confirmation Modal for create/update/cancel actions */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent backdrop-blur-sm">
+          <div className="bg-white/90 w-80 p-6 rounded-2xl shadow-2xl border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3">Confirmation</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              {confirmType === "delete"
+                ? `Are you sure you want to delete "${pendingDeleteService?.name ?? ''}"? This action cannot be undone.`
+                : confirmType === "cancel"
+                ? "Are you sure you want to cancel? Unsaved changes will be lost."
+                : confirmType === "update"
+                ? "Are you sure you want to update this service?"
+                : "Are you sure you want to create this service?"}
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowConfirm(false);
+                  setConfirmType(null);
+                  setPendingServiceData(null);
+                }}
+                className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (confirmType === "cancel") {
+                    handleCancelForm();
+                    setShowConfirm(false);
+                    setConfirmType(null);
+                  } else if (confirmType === "delete") {
+                    await performDeleteService();
+                  } else {
+                    await performSaveService();
+                  }
+                }}
+                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  </div>
   );
 }

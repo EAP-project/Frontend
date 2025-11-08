@@ -48,8 +48,9 @@ export default function AddAppointmentPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [loadingData, setLoadingData] = useState(true);
-  const [selectedServices, setSelectedServices] = useState<number[]>([]);
-  const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmType, setConfirmType] = useState<"cancel" | "book" | null>(null);
+  const [formData, setFormData] = useState<AppointmentFormValues | null>(null);
 
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentSchema),
@@ -151,39 +152,69 @@ export default function AddAppointmentPage() {
   };
 
   const onSubmit = async (data: AppointmentFormValues) => {
+    setFormData(data);
+    setConfirmType("book");
+    setShowConfirm(true);
+  };
+
+  const handleBookAppointment = async () => {
+    if (!formData) return;
     setIsLoading(true);
     setError(null);
-
     try {
-      // Create appointments for each selected service
-      const appointmentPromises = data.serviceIds.map(serviceId => {
-        const appointmentData: AppointmentRequestDTO = {
-          vehicleId: data.vehicleId,
-          serviceId: serviceId,
-          appointmentDateTime: new Date(data.appointmentDateTime).toISOString(),
-          customerNotes: data.customerNotes,
-        };
-        return createAppointment(appointmentData);
-      });
-
-      await Promise.all(appointmentPromises);
-
-      // Redirect back to customer dashboard
-      router.push(
-        `/dashboard/customer?success=${data.serviceIds.length} appointment(s) booked successfully`
-      );
+      const appointmentData: AppointmentRequestDTO = {
+        vehicleId: formData.vehicleId,
+        serviceId: formData.serviceId,
+        appointmentDateTime: new Date(formData.appointmentDateTime).toISOString(),
+        customerNotes: formData.customerNotes,
+      };
+      await createAppointment(appointmentData);
+      router.push("/dashboard/customer?success=Appointment booked successfully");
     } catch (err: unknown) {
       console.error("Error booking appointments:", err);
       if (err instanceof Error) {
-        setError(
-          err.message || "Failed to book appointments. Please try again."
-        );
+        setError(err.message || "Failed to book appointment. Please try again.");
       } else {
         setError(String(err));
       }
     } finally {
       setIsLoading(false);
+      setShowConfirm(false);
+      setConfirmType(null);
+      setFormData(null);
     }
+  };
+  interface ConfirmationModalProps {
+    open: boolean;
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+  }
+
+  const ConfirmationModal = ({ open, message, onConfirm, onCancel }: ConfirmationModalProps) => {
+    if (!open) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent backdrop-blur-sm">
+        <div className="bg-white/90 w-80 p-6 rounded-2xl shadow-2xl border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-800 mb-3">Confirmation</h3>
+          <p className="text-sm text-gray-600 mb-6">{message}</p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-sm font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (loadingData) {
@@ -432,114 +463,161 @@ export default function AddAppointmentPage() {
                     )}
                   />
 
-                  {/* Customer Notes */}
-                  <FormField
-                    control={form.control}
-                    name="customerNotes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-base text-purple-700 font-semibold">
-                          Notes (Optional)
-                        </FormLabel>
-                        <FormControl>
-                          <textarea
-                            placeholder="Any special requests or information..."
-                            className="w-full min-h-24 p-3 rounded-xl text-base border border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all resize-y"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage className="text-red-600" />
-                      </FormItem>
-                    )}
-                  />
+        {/* Form Card */}
+        <Card className="p-8 bg-white border border-gray-200 rounded-2xl shadow-xl">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* Vehicle Selection */}
+              <FormField
+                control={form.control}
+                name="vehicleId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base text-purple-700">
+                      Select Vehicle
+                    </FormLabel>
+                    <FormControl>
+                      <select
+                        className="w-full h-12 pl-3 pr-3 rounded-xl text-base border border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all bg-white text-gray-900"
+                        {...field}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value, 10))
+                        }
+                        disabled={vehicles.length === 0}
+                      >
+                        <option value={0}>Select a vehicle</option>
+                        {vehicles.map((vehicle) => (
+                          <option key={vehicle.id} value={vehicle.id}>
+                            {vehicle.year} {vehicle.model} (
+                            {vehicle.licensePlate})
+                          </option>
+                        ))}
+                      </select>
+                    </FormControl>
+                    <FormMessage className="text-red-600" />
+                  </FormItem>
+                )}
+              />
 
-                  {/* Submit Buttons */}
-                  <div className="flex gap-4 pt-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="flex-1 h-12 rounded-xl text-base"
-                      onClick={() => router.push("/dashboard/customer")}
-                      disabled={isLoading}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={isLoading || vehicles.length === 0 || selectedServices.length === 0}
-                      className="flex-1 h-12 rounded-xl text-base font-semibold bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 transition-all disabled:opacity-50"
-                    >
-                      {isLoading ? "Booking..." : `Book ${selectedServices.length} Service${selectedServices.length !== 1 ? 's' : ''}`}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </Card>
-          </div>
+              {/* Service Selection */}
+              <FormField
+                control={form.control}
+                name="serviceId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base text-purple-700">
+                      Select Service
+                    </FormLabel>
+                    <FormControl>
+                      <select
+                        className="w-full h-12 pl-3 pr-3 rounded-xl text-base border border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all bg-white text-gray-900"
+                        {...field}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value, 10))
+                        }
+                      >
+                        <option value={0}>Select a service</option>
+                        {services.map((service) => (
+                          <option key={service.id} value={service.id}>
+                            {service.name}
+                          </option>
+                        ))}
+                      </select>
+                    </FormControl>
+                    <FormMessage className="text-red-600" />
+                  </FormItem>
+                )}
+              />
 
-          {/* Right Column - Summary */}
-          <div className="lg:col-span-1">
-            <Card className="p-6 bg-white border border-gray-200 rounded-2xl shadow-xl sticky top-8">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">
-                Booking Summary
-              </h3>
-              
-              {selectedServices.length === 0 ? (
-                <div className="text-center py-8">
-                  <CalendarIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500 text-sm">
-                    No services selected yet
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Selected Services */}
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                      Selected Services ({selectedServices.length})
-                    </h4>
-                    <div className="space-y-2">
-                      {selectedServices.map(serviceId => {
-                        const service = services.find(s => s.id === serviceId);
-                        if (!service) return null;
-                        
-                        return (
-                          <div key={serviceId} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-900">
-                                {service.name}
-                              </p>
-                              
-                            </div>
-                            <div className="flex items-center gap-2">
-                             
-                              <button
-                                type="button"
-                                onClick={() => toggleService(serviceId)}
-                                className="text-gray-400 hover:text-red-600 transition-colors"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+              {/* Appointment Date and Time */}
+              <FormField
+                control={form.control}
+                name="appointmentDateTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base text-purple-700">
+                      Appointment Date & Time
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="datetime-local"
+                        className="h-12 rounded-xl text-base border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all"
+                        {...field}
+                        min={new Date().toISOString().slice(0, 16)}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-red-600" />
+                  </FormItem>
+                )}
+              />
 
-                  
+              {/* Customer Notes */}
+              <FormField
+                control={form.control}
+                name="customerNotes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base text-purple-700">
+                      Notes (Optional)
+                    </FormLabel>
+                    <FormControl>
+                      <textarea
+                        placeholder="Any special requests or information..."
+                        className="w-full min-h-24 p-3 rounded-xl text-base border border-purple-300 focus:border-purple-500 focus:ring focus:ring-purple-200 transition-all resize-y"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-red-600" />
+                  </FormItem>
+                )}
+              />
 
-                  {/* Info Note */}
-                  <div className="pt-4 border-t border-gray-200">
-                    <p className="text-xs text-gray-500">
-                      💡 All selected services will be scheduled for the same date and time.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </Card>
-          </div>
-        </div>
+              {/* Submit Button */}
+              <div className="flex gap-4 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 h-12 rounded-xl text-base"
+                  onClick={() => {
+                    setConfirmType("cancel");
+                    setShowConfirm(true);
+                  }}
+                  disabled={isLoading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isLoading || vehicles.length === 0}
+                  className="flex-1 h-12 rounded-xl text-base font-semibold bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 transition-all disabled:opacity-50"
+                >
+                  {isLoading ? "Booking..." : "Book Appointment"}
+                </Button>
+              </div>
+      <ConfirmationModal
+        open={showConfirm}
+        message={
+          confirmType === "cancel"
+            ? "Are you sure you want to cancel booking this appointment?"
+            : "Are you sure you want to book this appointment?"
+        }
+        onConfirm={() => {
+          if (confirmType === "cancel") {
+            setShowConfirm(false);
+            setConfirmType(null);
+            router.push("/dashboard/customer");
+          } else if (confirmType === "book") {
+            handleBookAppointment();
+          }
+        }}
+        onCancel={() => {
+          setShowConfirm(false);
+          setConfirmType(null);
+        }}
+      />
+            </form>
+          </Form>
+        </Card>
       </main>
     </div>
   );
