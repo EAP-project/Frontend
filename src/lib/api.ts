@@ -360,6 +360,37 @@ export async function getServiceCategories(): Promise<ServiceCategory[]> {
   return await response.json();
 }
 
+// /lib/api.ts (Add these two blocks near your existing interfaces/functions)
+
+// --- New Interface for Category with Services (Needed for Nested Data) ---
+export interface ServiceCategoryWithServices extends ServiceCategory {
+  // We assume the backend nests the list of services under this field
+  services: Service[]; 
+}
+
+// --- New API Call to fetch Categories with Services ---
+export async function getServiceCategoriesWithServices(): Promise<ServiceCategoryWithServices[]> {
+  const token = localStorage.getItem('token');
+  // NOTE: This endpoint needs to be implemented on your Spring Boot backend
+  const response = await fetch(`${API_BASE}/service-categories`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    mode: 'cors',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+// ... (Rest of your existing /lib/api.ts code)
+
 
 
 

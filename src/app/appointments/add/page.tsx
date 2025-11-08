@@ -5,15 +5,17 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Calendar as CalendarIcon, X } from "lucide-react";
+import { ArrowLeft, Calendar as CalendarIcon, Check, DollarSign, Clock, X } from "lucide-react";
 import Link from "next/link";
 import {
   createAppointment,
   AppointmentRequestDTO,
   getMyVehicles,
   getAllServices,
+  getServiceCategories,
   Vehicle,
   Service,
+  ServiceCategory,
 } from "@/lib/api";
 
 export default function AddAppointmentPage() {
@@ -22,11 +24,10 @@ export default function AddAppointmentPage() {
   const [error, setError] = useState<string | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [confirmType, setConfirmType] = useState<"cancel" | "book" | null>(
-    null
-  );
+  const [confirmType, setConfirmType] = useState<"cancel" | "book" | null>(null);
 
   // Form state
   const [vehicleId, setVehicleId] = useState<number>(0);
@@ -38,15 +39,19 @@ export default function AddAppointmentPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        console.log("Fetching vehicles and services...");
-        const [vehiclesData, servicesData] = await Promise.all([
+        console.log("Fetching vehicles, services, and categories...");
+        const [vehiclesData, servicesData, categoriesData] = await Promise.all([
           getMyVehicles(),
           getAllServices(),
+          getServiceCategories(),
         ]);
         console.log("Vehicles:", vehiclesData);
         console.log("Services:", servicesData);
+        console.log("Categories:", categoriesData);
+        
         setVehicles(vehiclesData);
         setServices(servicesData);
+        setCategories(categoriesData);
 
         if (servicesData.length === 0) {
           setError("No services available. Please contact the administrator.");
@@ -56,7 +61,7 @@ export default function AddAppointmentPage() {
         if (err instanceof Error) {
           setError(`Failed to load data: ${err.message}`);
         } else {
-          setError("Failed to load vehicles and services. Please try again.");
+          setError("Failed to load data. Please try again.");
         }
       } finally {
         setLoadingData(false);
@@ -126,7 +131,7 @@ export default function AddAppointmentPage() {
         "/dashboard/customer?success=Appointment booked successfully"
       );
     } catch (err: unknown) {
-      console.error("Error booking appointment:", err);
+      console.error("Error booking appointments:", err);
       if (err instanceof Error) {
         setError(
           err.message || "Failed to book appointment. Please try again."
@@ -184,7 +189,10 @@ export default function AddAppointmentPage() {
   if (loadingData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="text-lg">Loading...</div>
+        </div>
       </div>
     );
   }
@@ -215,7 +223,7 @@ export default function AddAppointmentPage() {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-3 bg-blue-100 rounded-lg">
@@ -226,7 +234,7 @@ export default function AddAppointmentPage() {
             </h1>
           </div>
           <p className="text-gray-600">
-            Schedule a service appointment for your vehicle.
+            Schedule service appointments for your vehicle. You can select multiple services.
           </p>
         </div>
 
@@ -253,20 +261,9 @@ export default function AddAppointmentPage() {
           </Card>
         )}
 
-        {/* No Services Warning */}
-        {services.length === 0 && !loadingData && vehicles.length > 0 && (
-          <Card className="p-6 mb-6 bg-orange-50 border border-orange-200">
-            <p className="text-orange-800">
-              No services are currently available. Please contact support or try
-              again later.
-            </p>
-          </Card>
-        )}
-
         {/* Form Card */}
         <Card className="p-8 bg-white border border-gray-200 rounded-2xl shadow-xl">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Vehicle Selection */}
+          <form onSubmit={handleSubmit} className="space-y-6">{/* Vehicle Selection */}
             <div>
               <label className="block text-base font-medium text-purple-700 mb-2">
                 Select Vehicle
@@ -474,29 +471,29 @@ export default function AddAppointmentPage() {
             </div>
           </form>
         </Card>
-      </main>
 
-      <ConfirmationModal
-        open={showConfirm}
-        message={
-          confirmType === "cancel"
-            ? "Are you sure you want to cancel booking this appointment?"
-            : "Are you sure you want to book this appointment?"
-        }
-        onConfirm={() => {
-          if (confirmType === "cancel") {
+        <ConfirmationModal
+          open={showConfirm}
+          message={
+            confirmType === "cancel"
+              ? "Are you sure you want to cancel booking this appointment?"
+              : "Are you sure you want to book this appointment?"
+          }
+          onConfirm={() => {
+            if (confirmType === "cancel") {
+              setShowConfirm(false);
+              setConfirmType(null);
+              router.push("/dashboard/customer");
+            } else if (confirmType === "book") {
+              handleBookAppointment();
+            }
+          }}
+          onCancel={() => {
             setShowConfirm(false);
             setConfirmType(null);
-            router.push("/dashboard/customer");
-          } else if (confirmType === "book") {
-            handleBookAppointment();
-          }
-        }}
-        onCancel={() => {
-          setShowConfirm(false);
-          setConfirmType(null);
-        }}
-      />
+          }}
+        />
+      </main>
     </div>
   );
 }
