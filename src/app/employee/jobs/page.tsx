@@ -208,11 +208,12 @@ export default function MyJobsPage() {
 
   return (
     <div className="p-8">
+      {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">My Jobs</h1>
-        <p className="text-gray-600 mt-2">
-          Appointments you are currently working on
-        </p>
+        <h1 className="text-3xl font-bold text-gray-800">
+          Welcome, {user.firstName} {user.lastName}
+        </h1>
+        <p className="text-gray-600 mt-2">Employee Dashboard</p>
       </div>
 
       {error && (
@@ -223,6 +224,15 @@ export default function MyJobsPage() {
 
       {/* In-Progress Appointments */}
       <div>
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold text-gray-800">
+            My Jobs (In Progress)
+          </h2>
+          <p className="text-gray-600 text-sm mt-1">
+            Appointments you are currently working on
+          </p>
+        </div>
+
         {inProgressAppointments.length === 0 ? (
           <Card className="p-8 text-center">
             <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
