@@ -147,21 +147,7 @@ export function Navbar({ user, onMenuClick }: NavbarProps) {
     }
   };
 
-  // Test function to simulate receiving a notification (remove this in production)
-  const testNotification = () => {
-    const testNotification: Notification = {
-      id: `test-${Date.now()}`,
-      title: "Test Appointment",
-      message: "This is a test notification for employee",
-      appointmentId: "123",
-      notificationType: "NEW_APPOINTMENT",
-      targetRole: "EMPLOYEE",
-      timestamp: Date.now(),
-      read: false,
-      type: "info"
-    };
-    setNotifications(prev => [testNotification, ...prev]);
-  };
+  // test helper removed — notifications come from the WebSocket/STOMP connection
 
   // Map backend notification types to frontend types
   const mapNotificationType = (notificationType: string): "info" | "success" | "warning" | "error" => {
@@ -249,7 +235,7 @@ export function Navbar({ user, onMenuClick }: NavbarProps) {
     markAsRead(notification.id);
     
     if (notification.appointmentId && notification.notificationType === "NEW_APPOINTMENT") {
-      router.push(/employee/appointments);
+      router.push('/employee/appointments');
     }
   };
 
@@ -260,8 +246,8 @@ export function Navbar({ user, onMenuClick }: NavbarProps) {
           {/* Left Side - Menu Button (Mobile) & Title */}
           <div className="flex items-center gap-4">
             <button
-              onClick={onMenuClick}
-              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              onClick={() => onMenuClick?.()}
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
               aria-label="Toggle menu"
             >
               <Menu className="h-6 w-6 text-gray-600" />
@@ -282,13 +268,7 @@ export function Navbar({ user, onMenuClick }: NavbarProps) {
               </span>
             </div>
 
-            {/* Test Button - Remove in production */}
-            <button
-              onClick={testNotification}
-              className="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
-            >
-              Test Notif
-            </button>
+            {/* Test button removed; only the notification icon is shown on the right */}
           </div>
 
           {/* Right Side - Notifications & User Menu */}
