@@ -147,21 +147,7 @@ export function Navbar({ user, onMenuClick }: NavbarProps) {
     }
   };
 
-  // Test function to simulate receiving a notification (remove this in production)
-  const testNotification = () => {
-    const testNotification: Notification = {
-      id: `test-${Date.now()}`,
-      title: "Test Appointment",
-      message: "This is a test notification for employee",
-      appointmentId: "123",
-      notificationType: "NEW_APPOINTMENT",
-      targetRole: "EMPLOYEE",
-      timestamp: Date.now(),
-      read: false,
-      type: "info"
-    };
-    setNotifications(prev => [testNotification, ...prev]);
-  };
+  // test helper removed — notifications come from the WebSocket/STOMP connection
 
   // Map backend notification types to frontend types
   const mapNotificationType = (notificationType: string): "info" | "success" | "warning" | "error" => {
@@ -282,13 +268,7 @@ export function Navbar({ user, onMenuClick }: NavbarProps) {
               </span>
             </div>
 
-            {/* Test Button - Remove in production */}
-            <button
-              onClick={testNotification}
-              className="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
-            >
-              Test Notif
-            </button>
+            {/* Test button removed; only the notification icon is shown on the right */}
           </div>
 
           {/* Right Side - Notifications & User Menu */}
