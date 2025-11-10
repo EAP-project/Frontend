@@ -33,6 +33,8 @@ interface SidebarProps {
     lastName?: string;
     email?: string;
   };
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 const navItems: Record<string, NavItem[]> = {
@@ -149,7 +151,7 @@ const navItems: Record<string, NavItem[]> = {
   ],
 };
 
-export function Sidebar({ role, user }: SidebarProps) {
+export function Sidebar({ role, user, isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const items = navItems[role] || [];
@@ -163,7 +165,8 @@ export function Sidebar({ role, user }: SidebarProps) {
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0">
+    <>
+      <aside className={`fixed inset-y-0 left-0 z-30 w-64 transform transition-transform duration-200 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:static md:block bg-white border-r border-gray-200 h-screen`}>
       {/* Logo/Header */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center gap-3">
@@ -221,6 +224,17 @@ export function Sidebar({ role, user }: SidebarProps) {
         </Button>
       </div>
 
+      </aside>
+
+      {/* mobile overlay to close sidebar */}
+      {isOpen && (
+        <button
+          className="fixed inset-0 z-20 bg-black/30 md:hidden"
+          onClick={onClose}
+          aria-label="Close sidebar"
+        />
+      )}
+
       {/* Logout Confirmation Modal */}
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent backdrop-blur-sm">
@@ -244,7 +258,7 @@ export function Sidebar({ role, user }: SidebarProps) {
           </div>
         </div>
       )}
-    </aside>
+    </>
   );
 }
 

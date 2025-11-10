@@ -235,7 +235,7 @@ export function Navbar({ user, onMenuClick }: NavbarProps) {
     markAsRead(notification.id);
     
     if (notification.appointmentId && notification.notificationType === "NEW_APPOINTMENT") {
-      router.push(/employee/appointments);
+      router.push('/employee/appointments');
     }
   };
 
@@ -246,8 +246,8 @@ export function Navbar({ user, onMenuClick }: NavbarProps) {
           {/* Left Side - Menu Button (Mobile) & Title */}
           <div className="flex items-center gap-4">
             <button
-              onClick={onMenuClick}
-              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              onClick={() => onMenuClick?.()}
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
               aria-label="Toggle menu"
             >
               <Menu className="h-6 w-6 text-gray-600" />

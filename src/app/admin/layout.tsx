@@ -18,6 +18,7 @@ export default function AdminLayout({
     role?: string;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -57,11 +58,14 @@ export default function AdminLayout({
     );
   }
 
+  const toggleSidebar = () => setIsSidebarOpen((s) => !s);
+  const closeSidebar = () => setIsSidebarOpen(false);
+
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar role="admin" user={user} />
+      <Sidebar role="admin" user={user} isOpen={isSidebarOpen} onClose={closeSidebar} />
       <div className="flex-1 flex flex-col">
-        <Navbar user={user} />
+        <Navbar user={user} onMenuClick={toggleSidebar} />
         <main className="flex-1">{children}</main>
       </div>
     </div>
