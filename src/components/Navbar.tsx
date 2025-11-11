@@ -343,8 +343,8 @@ const getSubscriptionTopics = useCallback(() => {
 
 
             <button
-              onClick={onMenuClick}
-              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              onClick={() => onMenuClick?.()}
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
               aria-label="Toggle menu"
             >
               <Menu className="h-6 w-6 text-gray-600" />
