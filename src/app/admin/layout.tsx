@@ -62,11 +62,11 @@ export default function AdminLayout({
   const closeSidebar = () => setIsSidebarOpen(false);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 overflow-x-hidden">
       <Sidebar role="admin" user={user} isOpen={isSidebarOpen} onClose={closeSidebar} />
       <div className="flex-1 flex flex-col">
         <Navbar user={user} onMenuClick={toggleSidebar} />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 min-w-0 overflow-x-hidden">{children}</main>
       </div>
     </div>
   );

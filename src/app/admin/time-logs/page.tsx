@@ -159,9 +159,7 @@ export default function AdminTimeLogsPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <div className="flex-1 overflow-auto">
-        <div className="p-6">
+    <div className="p-6">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-gray-900">
               All Employee Time Logs
@@ -271,8 +269,8 @@ export default function AdminTimeLogsPage() {
           {/* Time Logs Table */}
           {loading ? (
             <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+              <div>
+                <table className="min-w-full table-fixed divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -301,25 +299,25 @@ export default function AdminTimeLogsPage() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {Array.from({ length: 5 }).map((_, index) => (
                       <tr key={index}>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4 whitespace-normal break-words">
                           <Skeleton lines={2} className="w-36" />
                         </td>
                         <td className="px-6 py-4">
                           <Skeleton lines={1} className="w-32 h-4" />
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4 whitespace-normal break-words">
                           <Skeleton lines={2} className="w-28" />
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4 whitespace-normal break-words">
                           <Skeleton lines={1} className="w-36 h-4" />
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4 whitespace-normal break-words">
                           <Skeleton lines={1} className="w-36 h-4" />
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4 whitespace-normal break-words">
                           <Skeleton lines={1} className="w-20 h-4" />
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 whitespace-normal break-words max-w-xs md:max-w-sm lg:max-w-md">
                           <Skeleton lines={1} className="w-24 h-4" />
                         </td>
                       </tr>
@@ -338,8 +336,8 @@ export default function AdminTimeLogsPage() {
             </div>
           ) : (
             <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+              <div>
+                <table className="min-w-full table-fixed divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -371,14 +369,14 @@ export default function AdminTimeLogsPage() {
                         key={log.id}
                         className="hover:bg-gray-50 transition-colors"
                       >
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4 whitespace-normal break-words">
                           <div className="flex items-center">
                             <User className="h-4 w-4 text-gray-400 mr-2" />
                             <div>
                               <div className="text-sm font-medium text-gray-900">
                                 {log.employeeFirstName} {log.employeeLastName}
                               </div>
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-gray-500 break-all">
                                 {log.employeeEmail}
                               </div>
                             </div>
@@ -392,20 +390,20 @@ export default function AdminTimeLogsPage() {
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4 whitespace-normal break-words">
                           <div className="flex items-center">
                             <Car className="h-4 w-4 text-gray-400 mr-2" />
                             <div>
                               <div className="text-sm text-gray-900">
                                 {log.vehicleModel}
                               </div>
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-gray-500 break-words">
                                 {log.vehicleNumber}
                               </div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4 whitespace-normal break-words">
                           <div className="flex items-center">
                             <Calendar className="h-4 w-4 text-gray-400 mr-2" />
                             <span className="text-sm text-gray-600">
@@ -413,7 +411,7 @@ export default function AdminTimeLogsPage() {
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4 whitespace-normal break-words">
                           {log.endTime ? (
                             <div className="flex items-center">
                               <Calendar className="h-4 w-4 text-gray-400 mr-2" />
@@ -427,7 +425,7 @@ export default function AdminTimeLogsPage() {
                             </span>
                           )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4 whitespace-normal break-words">
                           <div className="flex items-center">
                             <Clock className="h-4 w-4 text-gray-400 mr-2" />
                             {log.endTime ? (
@@ -446,8 +444,8 @@ export default function AdminTimeLogsPage() {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm text-gray-600">
+                        <td className="px-6 py-4 whitespace-normal break-words max-w-xs md:max-w-sm lg:max-w-md">
+                          <span className="text-sm text-gray-600 break-words">
                             {log.notes || "-"}
                           </span>
                         </td>
@@ -458,8 +456,6 @@ export default function AdminTimeLogsPage() {
               </div>
             </div>
           )}
-        </div>
-      </div>
     </div>
   );
 }

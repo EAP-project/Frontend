@@ -99,20 +99,16 @@ export default function ServicesManagementPage() {
       return;
     }
 
-    loadServices();
-    loadCategories();
+    loadAll();
   }, [initialized, user, token, router]);
 
   const loadServices = async () => {
     try {
-      setLoading(true);
       const data = await getAllServices();
       setServices(data);
     } catch (err) {
       console.error("Failed to load services:", err);
       setError(err instanceof Error ? err.message : "Failed to load services");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -120,10 +116,20 @@ export default function ServicesManagementPage() {
     try {
       const data = await getServiceCategories();
       setCategories(data);
-      const allCategoryIds = new Set(data.map((cat) => cat.id));
-      setExpandedCategories(allCategoryIds);
+      // Do not expand all categories by default to reduce initial render cost
+      setExpandedCategories(new Set());
     } catch (err) {
       console.error("Failed to load categories:", err);
+    }
+  };
+
+  // Load services and categories in parallel to reduce total wait time
+  const loadAll = async () => {
+    try {
+      setLoading(true);
+      await Promise.all([loadServices(), loadCategories()]);
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -23,12 +23,12 @@ interface LoginResponse {
 const getApiBase = () => {
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
   if (envUrl) return envUrl;
-  
+
   // For client-side, ensure we use the full backend URL
   if (typeof window !== 'undefined') {
     return 'http://localhost:8080/api';
   }
-  
+
   return 'http://localhost:8080/api';
 };
 
@@ -36,7 +36,7 @@ const API_BASE = getApiBase();
 
 // Simple in-memory cache for GET requests to reduce duplicate API calls
 const requestCache = new Map<string, { data: unknown; timestamp: number }>();
-const CACHE_DURATION = 30000; // 30 seconds cache
+const CACHE_DURATION = 600000; // 2 minutes cache to improve perceived speed between admin navigations
 
 // Clear specific cache entries or all cache
 export function clearCache(pattern?: string) {
@@ -59,7 +59,7 @@ export function clearCache(pattern?: string) {
 async function cachedFetch<T>(url: string, options: RequestInit): Promise<T> {
   const cacheKey = `${url}-${options.headers ? JSON.stringify(options.headers) : ''}`;
   const now = Date.now();
-  
+
   // Check cache for GET requests only
   if (options.method === 'GET' || !options.method) {
     const cached = requestCache.get(cacheKey);
@@ -68,23 +68,23 @@ async function cachedFetch<T>(url: string, options: RequestInit): Promise<T> {
       return cached.data as T;
     }
   }
-  
+
   // Make the actual request
   const response = await fetch(url, options);
-  
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
     throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
   }
-  
+
   const data = await response.json();
-  
+
   // Cache GET requests
   if (options.method === 'GET' || !options.method) {
     requestCache.set(cacheKey, { data, timestamp: now });
     console.log('💾 Cached response for:', url);
   }
-  
+
   return data as T;
 }
 
@@ -207,7 +207,7 @@ export async function getMyVehicles(): Promise<Vehicle[]> {
   const token = localStorage.getItem('token');
   const url = `${API_BASE}/vehicles`;
   console.log('Fetching vehicles from:', url); // Debug log
-  
+
   const response = await fetch(url, {
     method: 'GET',
     headers: {
@@ -281,10 +281,10 @@ export async function getAllServices(): Promise<Service[]> {
 export async function createService(serviceData: ServiceDTO, imageFile?: File): Promise<Service> {
   const token = localStorage.getItem('token');
   const formData = new FormData();
-  
+
   // Add service data as JSON string
   formData.append('service', JSON.stringify(serviceData));
-  
+
   // Add image file if provided
   if (imageFile) {
     formData.append('image', imageFile);
@@ -326,7 +326,7 @@ export async function createServiceCategory(data: ServiceCategoryDTO): Promise<S
     const errorData = await response.json().catch(() => null);
     throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
   }
-  
+
   return await response.json();
 }
 
@@ -393,7 +393,8 @@ export async function getServiceById(serviceId: number): Promise<Service> {
 // Get service categories
 export async function getServiceCategories(): Promise<ServiceCategory[]> {
   const token = localStorage.getItem('token');
-  const response = await fetch(`${API_BASE}/service-categories`, {
+  const url = `${API_BASE}/service-categories`;
+  return cachedFetch<ServiceCategory[]>(url, {
     method: 'GET',
     headers: {
       'Accept': 'application/json',
@@ -401,13 +402,6 @@ export async function getServiceCategories(): Promise<ServiceCategory[]> {
     },
     mode: 'cors',
   });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
-  }
-
-  return await response.json();
 }
 
 // /lib/api.ts (Add these two blocks near your existing interfaces/functions)
@@ -415,7 +409,7 @@ export async function getServiceCategories(): Promise<ServiceCategory[]> {
 // --- New Interface for Category with Services (Needed for Nested Data) ---
 export interface ServiceCategoryWithServices extends ServiceCategory {
   // We assume the backend nests the list of services under this field
-  services: Service[]; 
+  services: Service[];
 }
 
 // --- New API Call to fetch Categories with Services ---
@@ -451,16 +445,16 @@ export async function getServiceCategoriesWithServices(): Promise<ServiceCategor
 
 // Update service
 export async function updateService(
-  serviceId: number, 
-  serviceData: ServiceDTO, 
+  serviceId: number,
+  serviceData: ServiceDTO,
   imageFile?: File
 ): Promise<Service> {
   const token = localStorage.getItem('token');
   const formData = new FormData();
-  
+
   // Add service data as JSON string
   formData.append('service', JSON.stringify(serviceData));
-  
+
   // Add image file if provided
   if (imageFile) {
     formData.append('image', imageFile);
@@ -600,8 +594,8 @@ export async function createSlotBasedAppointment(data: SlotBasedAppointmentReque
 
     // Check for duplicate slot booking error
     if (errorMessage.includes('duplicate key value violates unique constraint') ||
-        errorMessage.includes('slot_id') ||
-        errorMessage.includes('uk8y6yin1cflvk14414e91mdcwm')) {
+      errorMessage.includes('slot_id') ||
+      errorMessage.includes('uk8y6yin1cflvk14414e91mdcwm')) {
       throw new Error('This time slot has already been booked. Please select a different slot.');
     }
 
@@ -620,7 +614,7 @@ export async function createSlotBasedAppointment(data: SlotBasedAppointmentReque
 export async function getAvailableSlots(date: string, period: 'MORNING' | 'AFTERNOON'): Promise<AvailableSlot[]> {
   const token = localStorage.getItem('token');
   const url = `${API_BASE}/appointments/available-slots?date=${date}&period=${period}`;
-  
+
   const response = await fetch(url, {
     method: 'GET',
     headers: {
@@ -642,7 +636,7 @@ export async function getAvailableSlots(date: string, period: 'MORNING' | 'AFTER
 export async function getSlotTemplates(): Promise<SlotTemplate[]> {
   const token = localStorage.getItem('token');
   const url = `${API_BASE}/appointments/slot-templates`;
-  
+
   const response = await fetch(url, {
     method: 'GET',
     headers: {
@@ -664,7 +658,7 @@ export async function getMyAppointments(): Promise<Appointment[]> {
   const token = localStorage.getItem('token');
   const url = `${API_BASE}/appointments/my-appointments`;
   console.log('Fetching appointments from:', url); // Debug log
-  
+
   const response = await fetch(url, {
     method: 'GET',
     headers: {
@@ -723,11 +717,11 @@ export async function getAppointmentServices(id: number): Promise<Service[]> {
 // Get all appointments (for admin/employee)
 export async function getAllAppointments(status?: string): Promise<Appointment[]> {
   const token = localStorage.getItem('token');
-  const url = status 
-    ? `${API_BASE}/appointments?status=${status}` 
+  const url = status
+    ? `${API_BASE}/appointments?status=${status}`
     : `${API_BASE}/appointments`;
   console.log('Fetching all appointments from:', url);
-  
+
   return cachedFetch<Appointment[]>(url, {
     method: 'GET',
     headers: {
@@ -743,7 +737,7 @@ export async function getActiveAppointments(): Promise<Appointment[]> {
   const token = localStorage.getItem('token');
   const url = `${API_BASE}/appointments`;
   console.log('Fetching active appointments from:', url);
-  
+
   const allAppointments = await cachedFetch<Appointment[]>(url, {
     method: 'GET',
     headers: {
@@ -752,9 +746,9 @@ export async function getActiveAppointments(): Promise<Appointment[]> {
     },
     mode: 'cors',
   });
-  
+
   // Filter out COMPLETED and CANCELLED appointments
-  return allAppointments.filter((apt: Appointment) => 
+  return allAppointments.filter((apt: Appointment) =>
     apt.status !== 'COMPLETED' && apt.status !== 'CANCELLED'
   );
 }
