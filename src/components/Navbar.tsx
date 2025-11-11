@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Bell, LogOut, Menu } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import SockJS from "sockjs-client";
 import { getScheduledAppointments } from "../lib/api";
 import { Client, StompSubscription } from "@stomp/stompjs";
@@ -33,8 +33,10 @@ interface Notification {
 
 export function Navbar({ user, onMenuClick }: NavbarProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [pageHeading, setPageHeading] = useState<string>("");
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const stompClient = useRef<Client | null>(null);
@@ -48,32 +50,32 @@ export function Navbar({ user, onMenuClick }: NavbarProps) {
   const unreadCount = ctx?.unreadCount ?? notificationsToShow.filter((n) => !n.read).length;
 
 
-// Helper to derive possible topics for each role (subscribe to multiple to cover backend naming)
-const getSubscriptionTopics = useCallback(() => {
-  const role = user?.role?.toUpperCase();
-  switch (role) {
-    case "EMPLOYEE":
-      return [
-        "/topic/employee/appointments",
-        "/topic/notifications/employee",
-        "/topic/employee/notifications",
-      ];
-    case "CUSTOMER":
-      return [
-        "/topic/customer/appointments",
-        "/topic/notifications/customer",
-      ];
-    case "ADMIN":
-      return [
-        "/topic/admin/notifications",
-        "/topic/notifications/admin",
-      ];
-    default:
-      return ["/topic/notifications"];
-  }
-}, [user?.role]);
+  // Helper to derive possible topics for each role (subscribe to multiple to cover backend naming)
+  const getSubscriptionTopics = useCallback(() => {
+    const role = user?.role?.toUpperCase();
+    switch (role) {
+      case "EMPLOYEE":
+        return [
+          "/topic/employee/appointments",
+          "/topic/notifications/employee",
+          "/topic/employee/notifications",
+        ];
+      case "CUSTOMER":
+        return [
+          "/topic/customer/appointments",
+          "/topic/notifications/customer",
+        ];
+      case "ADMIN":
+        return [
+          "/topic/admin/notifications",
+          "/topic/notifications/admin",
+        ];
+      default:
+        return ["/topic/notifications"];
+    }
+  }, [user?.role]);
 
-  
+
 
   const initializeWebSocket = useCallback(() => {
     try {
@@ -82,23 +84,23 @@ const getSubscriptionTopics = useCallback(() => {
         stompClient.current.deactivate();
       }
 
-  const topics = getSubscriptionTopics();
-  console.log("🔔 Subscribing to topics:", topics, "for role:", user?.role);
+      const topics = getSubscriptionTopics();
+      console.log("🔔 Subscribing to topics:", topics, "for role:", user?.role);
 
       // Create STOMP client with SockJS
       // Backend WebSocket endpoint - change this if backend is on a different host
       const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:8080/ws';
-      
+
       stompClient.current = new Client({
         webSocketFactory: () => new SockJS(WS_URL),
         reconnectDelay: 5000,
         heartbeatIncoming: 4000,
         heartbeatOutgoing: 4000,
-        
+
         onConnect: (frame) => {
           console.log("✅ Connected to WebSocket via STOMP:", frame);
           setIsConnected(true);
-          
+
           // Subscribe to all relevant topics for the role
           subscriptionsRef.current = [];
           topics.forEach(topic => {
@@ -128,22 +130,22 @@ const getSubscriptionTopics = useCallback(() => {
             }
           });
         },
-        
+
         onStompError: (frame) => {
           console.error("❌ STOMP error:", frame);
           setIsConnected(false);
         },
-        
+
         onDisconnect: () => {
           console.log("🔌 WebSocket disconnected");
           setIsConnected(false);
         },
-        
+
         onWebSocketClose: (event) => {
           console.log("🔌 WebSocket connection closed:", event);
           setIsConnected(false);
         },
-        
+
         onWebSocketError: (error) => {
           console.error("❌ WebSocket error:", error);
           setIsConnected(false);
@@ -153,7 +155,7 @@ const getSubscriptionTopics = useCallback(() => {
       // Activate the connection
       stompClient.current.activate();
       console.log("🚀 Activating WebSocket connection...");
-      
+
     } catch (error) {
       console.error("❌ Failed to initialize WebSocket:", error);
       setIsConnected(false);
@@ -173,7 +175,7 @@ const getSubscriptionTopics = useCallback(() => {
       console.log("🧹 Cleaning up WebSocket connection");
       try {
         if (subscriptionsRef.current) {
-          subscriptionsRef.current.forEach(s => { try { s.unsubscribe(); } catch {} });
+          subscriptionsRef.current.forEach(s => { try { s.unsubscribe(); } catch { } });
           subscriptionsRef.current = null;
         }
       } catch (e) {
@@ -192,7 +194,7 @@ const getSubscriptionTopics = useCallback(() => {
   // Map backend notification types to frontend types
   const mapNotificationType = (notificationType: string): "info" | "success" | "warning" | "error" => {
     if (!notificationType) return "info";
-    
+
     switch (notificationType.toUpperCase()) {
       case "NEW_APPOINTMENT":
         return "info";
@@ -274,7 +276,7 @@ const getSubscriptionTopics = useCallback(() => {
     const date = new Date(timestamp);
     const now = new Date();
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return "Just now";
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
@@ -283,7 +285,7 @@ const getSubscriptionTopics = useCallback(() => {
 
   const handleNotificationClick = (notification: Notification) => {
     markAsRead(notification.id);
-    
+
     // Navigate based on notification type
     if (notification.appointmentId && notification.appointmentId !== "test-123") {
       router.push(`/appointments/${notification.appointmentId}`);
@@ -299,8 +301,8 @@ const getSubscriptionTopics = useCallback(() => {
 
   // Catch-up: fetch scheduled appointments after employee logs in to populate notifications if missed while offline
   useEffect(() => {
-  if (ctx) return; // Provider already does catch-up
-  const role = user?.role?.toUpperCase();
+    if (ctx) return; // Provider already does catch-up
+    const role = user?.role?.toUpperCase();
     if (role !== 'EMPLOYEE') return;
     (async () => {
       try {
@@ -327,20 +329,45 @@ const getSubscriptionTopics = useCallback(() => {
     })();
   }, [ctx, user?.role, notifications]);
 
+  // Extract and sync page heading into navbar on navigation/content changes
+  useEffect(() => {
+    const findHeading = (): string => {
+      if (typeof document === "undefined") return "";
+      const mainEl = document.querySelector("main");
+      if (!mainEl) return "";
+      const explicit = mainEl.querySelector<HTMLElement>("[data-page-title]");
+      if (explicit?.innerText?.trim()) return explicit.innerText.trim();
+      const h1 = mainEl.querySelector<HTMLElement>("h1");
+      if (h1?.innerText?.trim()) return h1.innerText.trim();
+      const h2 = mainEl.querySelector<HTMLElement>("h2");
+      if (h2?.innerText?.trim()) return h2.innerText.trim();
+      return "";
+    };
+    setPageHeading(findHeading());
+    const mainEl = document.querySelector("main");
+    if (!mainEl) return;
+    const observer = new MutationObserver(() => {
+      const next = findHeading();
+      setPageHeading((prev) => (prev !== next ? next : prev));
+    });
+    observer.observe(mainEl, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
+  }, [pathname]);
+
+  const navHeading = useMemo(() => {
+    if (pathname?.startsWith("/dashboard/customer")) {
+      const first = user?.firstName?.trim();
+      return `Welcome, ${first && first.length ? first : "User"}`;
+    }
+    return pageHeading;
+  }, [pathname, user?.firstName, pageHeading]);
+
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Left Side - Menu Button (Mobile) & Title */}
           <div className="flex items-center gap-4">
-
-            <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">
-          Welcome, {user.firstName} {user.lastName}
-        </h1>
-        <p className="text-gray-600 mt-2">Employee Dashboard</p>
-      </div>
-
 
             <button
               onClick={() => onMenuClick?.()}
@@ -351,21 +378,26 @@ const getSubscriptionTopics = useCallback(() => {
             </button>
 
 
-          
-            
+
+            {/* Page heading (from page body or override on dashboard) */}
+            {navHeading ? (
+              <div className="hidden lg:block ml-4 pl-4 border-l border-gray-200 max-w-xs truncate text-sm font-semibold text-gray-800">
+                {navHeading}
+              </div>
+            ) : null}
+
             {/* Connection Status Indicator */}
             <div className="flex items-center gap-2 text-xs" title={displayConnected ? "Connected to notifications" : "Disconnected"}>
               <div
-                className={`h-2 w-2 rounded-full ${
-                  displayConnected ? "bg-green-500 animate-pulse" : "bg-red-500"
-                }`}
+                className={`h-2 w-2 rounded-full ${displayConnected ? "bg-green-500 animate-pulse" : "bg-red-500"
+                  }`}
               />
               <span className="text-gray-500 hidden md:inline">
                 {displayConnected ? "Live" : "Offline"}
               </span>
             </div>
 
-            
+
 
           </div>
           {/* End Left Side */}
@@ -396,7 +428,7 @@ const getSubscriptionTopics = useCallback(() => {
                     className="fixed inset-0 z-10"
                     onClick={() => setShowNotifications(false)}
                   />
-                  
+
                   <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-20 max-h-96 overflow-hidden flex flex-col">
                     <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
                       <div>
@@ -433,8 +465,8 @@ const getSubscriptionTopics = useCallback(() => {
                           <Bell className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                           <p className="font-medium">No notifications</p>
                           <p className="text-sm text-gray-400 mt-1">
-                            {isConnected 
-                              ? "You'll see new appointments here" 
+                            {isConnected
+                              ? "You'll see new appointments here"
                               : "Connecting to notification service..."
                             }
                           </p>
@@ -444,9 +476,8 @@ const getSubscriptionTopics = useCallback(() => {
                           {notificationsToShow.map((notification) => (
                             <div
                               key={notification.id}
-                              className={`p-4 hover:bg-gray-50 cursor-pointer transition-all duration-200 ${
-                                getNotificationColor(notification.type)
-                              } ${!notification.read ? "ring-1 ring-blue-200" : ""}`}
+                              className={`p-4 hover:bg-gray-50 cursor-pointer transition-all duration-200 ${getNotificationColor(notification.type)
+                                } ${!notification.read ? "ring-1 ring-blue-200" : ""}`}
                               onClick={() => handleNotificationClick(notification)}
                             >
                               <div className="flex items-start gap-3">
@@ -524,7 +555,7 @@ const getSubscriptionTopics = useCallback(() => {
                     className="fixed inset-0 z-10"
                     onClick={() => setShowUserMenu(false)}
                   />
-                  
+
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
                     <div className="p-4 border-b border-gray-200">
                       <p className="text-sm font-semibold text-gray-900">
@@ -552,13 +583,13 @@ const getSubscriptionTopics = useCallback(() => {
               )}
             </div>
           </div>
-        </div> 
+        </div>
       </div>
     </nav>
   );
 }
- 
-  
+
+
 
 
 export default Navbar;
