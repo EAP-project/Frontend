@@ -19,6 +19,7 @@ import {
   FileText,
   Eye,
   X,
+  DollarSign,
 } from "lucide-react";
 
 export default function EmployeeDashboard() {
@@ -633,7 +634,7 @@ export default function EmployeeDashboard() {
             {/* Background overlay */}
             <div
               className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
-              onClick={closeModal}
+              onClick={() => setShowServicesModal(false)}
             ></div>
 
             {/* This element is to trick the browser into centering the modal contents. */}
@@ -645,7 +646,7 @@ export default function EmployeeDashboard() {
             </span>
 
             {/* Modal panel */}
-            <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full z-50">
+            <div className="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full z-50">
               {/* Header */}
               <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
                 <div className="flex items-center justify-between">
@@ -653,7 +654,7 @@ export default function EmployeeDashboard() {
                     Selected Services
                   </h3>
                   <button
-                    onClick={closeModal}
+                    onClick={() => setShowServicesModal(false)}
                     className="text-white hover:text-gray-200 transition-colors"
                   >
                     <X className="h-6 w-6" />
@@ -665,23 +666,84 @@ export default function EmployeeDashboard() {
               <div className="px-6 py-6">
                 {selectedAppointment.services &&
                 selectedAppointment.services.length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {selectedAppointment.services.map((service, index) => (
                       <div
                         key={service.id}
-                        className="bg-gray-50 p-3 rounded border border-gray-200"
+                        className="bg-gray-50 p-4 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
                       >
-                        <p className="text-sm font-medium text-gray-900">
-                          {index + 1}. {service.name}
-                        </p>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900 mb-1">
+                              {index + 1}. {service.name}
+                            </p>
+                            {service.description && (
+                              <p className="text-xs text-gray-600 line-clamp-2">
+                                {service.description}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <div className="flex items-center gap-1">
+                              <DollarSign className="h-4 w-4 text-green-600" />
+                              <span className="text-lg font-bold text-green-600">
+                                {service.estimatedCost != null
+                                  ? service.estimatedCost.toFixed(2)
+                                  : "N/A"}
+                              </span>
+                            </div>
+                            {service.estimatedDurationMinutes && (
+                              <div className="flex items-center gap-1 text-gray-500">
+                                <Clock className="h-3 w-3" />
+                                <span className="text-xs">
+                                  {service.estimatedDurationMinutes} min
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="bg-gray-50 p-3 rounded border border-gray-200">
-                    <p className="text-sm font-medium text-gray-900">
-                      {selectedAppointment.service?.name || "N/A"}
-                    </p>
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900 mb-1">
+                          {selectedAppointment.service?.name || "N/A"}
+                        </p>
+                        {selectedAppointment.service?.description && (
+                          <p className="text-xs text-gray-600">
+                            {selectedAppointment.service.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="h-4 w-4 text-green-600" />
+                          <span className="text-lg font-bold text-green-600">
+                            {selectedAppointment.service?.estimatedCost != null
+                              ? selectedAppointment.service.estimatedCost.toFixed(
+                                  2
+                                )
+                              : "N/A"}
+                          </span>
+                        </div>
+                        {selectedAppointment.service
+                          ?.estimatedDurationMinutes && (
+                          <div className="flex items-center gap-1 text-gray-500">
+                            <Clock className="h-3 w-3" />
+                            <span className="text-xs">
+                              {
+                                selectedAppointment.service
+                                  .estimatedDurationMinutes
+                              }{" "}
+                              min
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -689,8 +751,8 @@ export default function EmployeeDashboard() {
               {/* Footer */}
               <div className="bg-gray-50 px-6 py-4 flex justify-end">
                 <button
-                  onClick={closeModal}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                  onClick={() => setShowServicesModal(false)}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
                 >
                   Close
                 </button>
