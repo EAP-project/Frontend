@@ -7,6 +7,7 @@ import SockJS from "sockjs-client";
 import { getScheduledAppointments } from "../lib/api";
 import { Client, StompSubscription } from "@stomp/stompjs";
 import { useNotifications } from "@/context/NotificationsContext";
+import { useAuth } from "@/context/AuthContext";
 
 interface NavbarProps {
   user?: {
@@ -44,6 +45,7 @@ export function Navbar({ user, onMenuClick }: NavbarProps) {
 
   // Global notifications (persist across routes)
   const ctx = useNotifications();
+  const auth = useAuth();
 
   const notificationsToShow = (ctx?.notifications as unknown as Notification[]) ?? notifications;
   const displayConnected = ctx?.isConnected ?? isConnected;
@@ -219,8 +221,13 @@ export function Navbar({ user, onMenuClick }: NavbarProps) {
       stompClient.current.deactivate();
       stompClient.current = null;
     }
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    // Use centralized auth logout
+    try {
+      auth.logout();
+    } catch (e) {
+      // If Auth context fails for any reason, log the error and continue
+      console.warn("Auth logout failed:", e);
+    }
     router.push("/login");
   };
 

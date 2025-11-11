@@ -19,6 +19,7 @@ import {
 import { Button } from "./ui/Button";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 interface NavItem {
   label: string;
@@ -157,9 +158,10 @@ export function Sidebar({ role, user, isOpen = false, onClose }: SidebarProps) {
   const items = navItems[role] || [];
   const [showConfirm, setShowConfirm] = useState(false);
 
+  const auth = useAuth();
+
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    auth.logout();
     router.push("/login");
     setShowConfirm(false);
   };

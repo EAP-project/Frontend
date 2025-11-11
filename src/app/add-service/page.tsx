@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { createService, ServiceDTO } from "@/lib/api";
 import { Card } from "@/components/ui/card";
@@ -11,9 +12,7 @@ import { ArrowLeft, Upload, X } from "lucide-react";
 
 export default function AddServicePage() {
   const router = useRouter();
-  const [user, setUser] = useState<{
-    role?: string;
-  } | null>(null);
+  const { user, token, initialized } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -31,23 +30,18 @@ export default function AddServicePage() {
   const [confirmType, setConfirmType] = useState<"cancel" | "create" | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userStr = localStorage.getItem("user");
-
-    if (!token || !userStr) {
+    if (!initialized) return;
+    if (!token || !user) {
       router.push("/login");
       return;
     }
 
-    const userData = JSON.parse(userStr);
-    setUser(userData);
-
     // Only allow admin
-    if (!userData.role?.toUpperCase().includes("ADMIN")) {
+    if (!user.role?.toUpperCase().includes("ADMIN")) {
       router.push("/dashboard/customer");
       return;
     }
-  }, [router]);
+  }, [router, initialized, token, user]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -133,7 +127,7 @@ export default function AddServicePage() {
     );
   };
 
-  if (!user) {
+  if (!initialized || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Loading...</div>

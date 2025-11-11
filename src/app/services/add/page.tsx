@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,6 +32,7 @@ type ServiceFormValues = z.infer<typeof serviceSchema>;
 
 export default function AddServicePage() {
   const router = useRouter();
+  const { token } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,8 +50,6 @@ export default function AddServicePage() {
     setError(null);
 
     try {
-      const token = localStorage.getItem("token");
-
       if (!token) {
         throw new Error("You must be logged in to add a service");
       }

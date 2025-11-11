@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { Navbar } from "@/components/Navbar";
+import { useAuth } from "@/context/AuthContext";
 
 export default function CustomerSectionLayout({
   children,
@@ -11,28 +12,18 @@ export default function CustomerSectionLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [user, setUser] = useState<{
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    role?: string;
-  } | null>(null);
+  const { user, token, initialized } = useAuth();
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userStr = localStorage.getItem("user");
-
-    if (!token || !userStr) {
+    if (!initialized) return;
+    if (!token || !user) {
       router.push("/login");
       return;
     }
-
-    const userData = JSON.parse(userStr);
-    setUser(userData);
     setLoading(false);
-  }, [router]);
+  }, [initialized, token, user, router]);
 
   if (loading || !user) {
     return (

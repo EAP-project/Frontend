@@ -12,30 +12,24 @@ import {
   Vehicle,
   Appointment,
 } from "@/lib/api";
+import Skeleton from "@/components/ui/Skeleton";
+import { useAuth } from "@/context/AuthContext";
 
 export default function CustomerDashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<{
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    role?: string;
-  } | null>(null);
+  const { user, token, initialized } = useAuth();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     const initDashboard = async () => {
-      const token = localStorage.getItem("token");
-      const userStr = localStorage.getItem("user");
-      if (!token || !userStr) {
+      if (!initialized) return;
+      if (!token || !user) {
         router.push("/login");
         return;
       }
-      const userData = JSON.parse(userStr);
-      setUser(userData);
-      const role = userData.role?.toUpperCase() || "";
+
+      const role = user.role?.toUpperCase() || "";
       if (role.includes("ADMIN")) {
         router.push("/dashboard/admin");
         return;
@@ -43,6 +37,7 @@ export default function CustomerDashboard() {
         router.push("/dashboard/employee");
         return;
       }
+
       try {
         const [vehiclesData, appointmentsData] = await Promise.all([
           getMyVehicles(),
@@ -57,7 +52,7 @@ export default function CustomerDashboard() {
       }
     };
     initDashboard();
-  }, [router]);
+  }, [router, initialized, token, user]);
 
   if (!user)
     return (
@@ -75,10 +70,60 @@ export default function CustomerDashboard() {
       <div className="max-w-7xl mx-auto">
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-lg text-gray-600">
-              Loading your dashboard...
-            </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card className="p-6">
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <Car className="h-6 w-6" />
+                My Vehicles
+              </h2>
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="p-3 border rounded">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 pr-4">
+                        <Skeleton lines={1} />
+                        <div className="mt-2">
+                          <Skeleton lines={1} className="w-1/2" />
+                        </div>
+                      </div>
+                      <div className="w-24">
+                        <Skeleton variant="rect" className="h-8 w-full" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div className="mt-2">
+                  <Skeleton variant="rect" className="h-10 w-40 rounded-full" />
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-6">
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <Calendar className="h-6 w-6" />
+                Upcoming Appointments
+              </h2>
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="p-3 border rounded">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 pr-4">
+                        <Skeleton lines={1} />
+                        <div className="mt-2">
+                          <Skeleton lines={1} className="w-1/3" />
+                        </div>
+                      </div>
+                      <div className="w-20">
+                        <Skeleton variant="rect" className="h-6 w-full" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div className="mt-2">
+                  <Skeleton variant="rect" className="h-10 w-48 rounded-full" />
+                </div>
+              </div>
+            </Card>
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2">

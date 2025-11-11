@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getAllServices, getServiceCategories, Service, ServiceCategory } from "@/lib/api";
@@ -10,12 +11,7 @@ import { Wrench, Calendar, DollarSign, Clock, ChevronDown, ChevronUp } from "luc
 
 export default function ServicesPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    role?: string;
-  } | null>(null);
+  const { user, token, initialized } = useAuth();
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,19 +20,14 @@ export default function ServicesPage() {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userStr = localStorage.getItem("user");
-
-    if (!token || !userStr) {
+    if (!initialized) return;
+    if (!token || !user) {
       router.push("/login");
       return;
     }
 
-    const userData = JSON.parse(userStr);
-    setUser(userData);
-
     loadData();
-  }, [router]);
+  }, [router, initialized, token, user]);
 
   const loadData = async () => {
     try {
@@ -95,7 +86,7 @@ export default function ServicesPage() {
     return `http://localhost:8080${imageUrl}`;
   };
 
-  if (!user) {
+  if (!initialized || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Loading...</div>

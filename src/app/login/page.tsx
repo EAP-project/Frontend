@@ -20,6 +20,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/api";
 import { decodeToken, getTokenRole } from "@/lib/jwt";
+import { useAuth } from "@/context/AuthContext";
+import type { User } from "@/types/auth";
 
 // Schema for login - updated to use email instead of username
 const loginSchema = z.object({
@@ -36,6 +38,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const auth = useAuth();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -55,7 +58,8 @@ export default function LoginPage() {
 
       const token = loginResponse.token;
       if (token) {
-        localStorage.setItem("token", token);
+        // persist via context
+        // we'll also call login below which persists both token and user
       }
 
       // Prefer decoding token to read role; fallback to response.role
@@ -72,7 +76,8 @@ export default function LoginPage() {
         phoneNumber: loginResponse.phoneNumber,
       };
 
-      localStorage.setItem("user", JSON.stringify(userObj));
+  // Use auth context to persist and set state app-wide
+  auth.login(token || "", userObj as User);
 
       // route based on role (handle common role naming variants)
       const roleUpper = roleString.toUpperCase();

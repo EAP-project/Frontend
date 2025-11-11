@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Skeleton from "@/components/ui/Skeleton";
+import { useAuth } from "@/context/AuthContext";
 import { Appointment, getMyServiceHistory } from "@/lib/api";
 import {
   Calendar,
@@ -15,12 +17,7 @@ import {
 
 export default function ServiceHistoryPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    role?: string;
-  } | null>(null);
+  const { user, token, initialized } = useAuth();
   const [history, setHistory] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -29,38 +26,28 @@ export default function ServiceHistoryPage() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userStr = localStorage.getItem("user");
-
-    if (!token || !userStr) {
+    if (!initialized) return;
+    if (!token || !user) {
       router.push("/login");
       return;
     }
 
-    try {
-      const parsedUser = JSON.parse(userStr);
-      setUser(parsedUser);
-
-      if (parsedUser.role !== "CUSTOMER") {
-        router.push("/dashboard/employee");
-        return;
-      }
-    } catch (err) {
-      console.error("Error parsing user:", err);
-      router.push("/login");
+    if (user.role !== "CUSTOMER") {
+      router.push("/dashboard/employee");
       return;
     }
 
     fetchHistory();
-  }, [router]);
+  }, [router, initialized, token, user]);
 
   const fetchHistory = async () => {
     try {
       setLoading(true);
       const data = await getMyServiceHistory();
       setHistory(data);
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch service history");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg || "Failed to fetch service history");
     } finally {
       setLoading(false);
     }
@@ -106,10 +93,39 @@ export default function ServiceHistoryPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading service history...</p>
+      <div className="flex-1 p-6">
+        <div className="mb-6">
+          <Skeleton lines={1} className="w-56 h-6" />
+          <div className="mt-3">
+            <Skeleton lines={1} className="w-80" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <th key={i} className="px-6 py-3">
+                      <Skeleton lines={1} className="w-24 h-4" />
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {Array.from({ length: 4 }).map((_, row) => (
+                  <tr key={row} className="hover:bg-gray-50">
+                    {Array.from({ length: 6 }).map((__, col) => (
+                      <td key={col} className="px-6 py-4 whitespace-nowrap">
+                        <Skeleton lines={1} className="w-40 h-4" />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     );

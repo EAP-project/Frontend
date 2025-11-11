@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import Skeleton from "@/components/ui/Skeleton";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getMyVehicles, Vehicle } from "@/lib/api";
@@ -10,30 +12,20 @@ import { Car, Plus, Calendar } from "lucide-react";
 
 export default function VehiclesPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    role?: string;
-  } | null>(null);
+  const { user, token, initialized } = useAuth();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userStr = localStorage.getItem("user");
-
-    if (!token || !userStr) {
+    if (!initialized) return;
+    if (!token || !user) {
       router.push("/login");
       return;
     }
 
-    const userData = JSON.parse(userStr);
-    setUser(userData);
-
     loadVehicles();
-  }, [router]);
+  }, [router, initialized, token, user]);
 
   const loadVehicles = async () => {
     try {
@@ -48,7 +40,7 @@ export default function VehiclesPage() {
     }
   };
 
-  if (!user) {
+  if (!initialized || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Loading...</div>
@@ -86,8 +78,31 @@ export default function VehiclesPage() {
 
         {/* Vehicles Grid */}
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-lg text-gray-600">Loading vehicles...</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="p-6 border rounded-lg">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
+                      <Skeleton variant="circle" className="h-8 w-8" />
+                    </div>
+                    <div>
+                      <Skeleton lines={1} className="w-40" />
+                      <div className="mt-2">
+                        <Skeleton lines={1} className="w-32" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2 mb-4">
+                  <Skeleton lines={1} />
+                  <Skeleton lines={1} className="w-1/2" />
+                </div>
+                <div className="pt-4 border-t border-gray-200">
+                  <Skeleton variant="rect" className="h-10 w-full rounded-full" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : vehicles.length === 0 ? (
           <Card className="p-12 text-center">
