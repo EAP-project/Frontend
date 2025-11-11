@@ -91,46 +91,6 @@ export default function ServiceHistoryPage() {
     setSelectedAppointment(null);
   };
 
-  if (loading) {
-    return (
-      <div className="flex-1 p-6">
-        <div className="mb-6">
-          <Skeleton lines={1} className="w-56 h-6" />
-          <div className="mt-3">
-            <Skeleton lines={1} className="w-80" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <th key={i} className="px-6 py-3">
-                      <Skeleton lines={1} className="w-24 h-4" />
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {Array.from({ length: 4 }).map((_, row) => (
-                  <tr key={row} className="hover:bg-gray-50">
-                    {Array.from({ length: 6 }).map((__, col) => (
-                      <td key={col} className="px-6 py-4 whitespace-nowrap">
-                        <Skeleton lines={1} className="w-40 h-4" />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="flex-1 p-6">
@@ -151,7 +111,7 @@ export default function ServiceHistoryPage() {
           </p>
         </div>
 
-        {history.length === 0 ? (
+        {!loading && history.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <CheckCircle className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg">No service history found</p>
@@ -186,83 +146,113 @@ export default function ServiceHistoryPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {history.map((appointment) => (
-                    <tr
-                      key={appointment.id}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-medium text-gray-900">
-                          #{appointment.id}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                          <span className="text-sm text-gray-600">
-                            {new Date(
-                              appointment.appointmentDateTime
-                            ).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <Wrench className="h-4 w-4 text-gray-400 mr-2" />
+                  {loading ? (
+                    // Show skeleton rows while loading
+                    Array.from({ length: 5 }).map((_, row) => (
+                      <tr key={row} className="animate-pulse">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton lines={1} className="w-12 h-4" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton lines={1} className="w-24 h-4" />
+                        </td>
+                        <td className="px-6 py-4">
+                          <Skeleton lines={1} className="w-32 h-4" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="space-y-1">
+                            <Skeleton lines={1} className="w-24 h-4" />
+                            <Skeleton lines={1} className="w-20 h-3" />
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton lines={1} className="w-32 h-4" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton variant="circle" className="h-5 w-5" />
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    // Show actual data when loaded
+                    history.map((appointment) => (
+                      <tr
+                        key={appointment.id}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <span className="text-sm font-medium text-gray-900">
-                            {appointment.services &&
-                            appointment.services.length > 0 ? (
-                              appointment.services.length > 1 ? (
-                                <div>
-                                  <div>{appointment.services[0].name}</div>
-                                  <div className="text-xs text-gray-500 mt-1">
-                                    +{appointment.services.length - 1} more
-                                    service
-                                    {appointment.services.length - 1 > 1
-                                      ? "s"
-                                      : ""}
-                                  </div>
-                                </div>
-                              ) : (
-                                appointment.services[0].name
-                              )
-                            ) : (
-                              appointment.service?.name || "N/A"
-                            )}
+                            #{appointment.id}
                           </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Car className="h-4 w-4 text-gray-400 mr-2" />
-                          <div>
-                            <div className="text-sm text-gray-900">
-                              {appointment.vehicle?.model}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {appointment.vehicle?.licensePlate}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                            <span className="text-sm text-gray-600">
+                              {new Date(
+                                appointment.appointmentDateTime
+                              ).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center">
+                            <Wrench className="h-4 w-4 text-gray-400 mr-2" />
+                            <span className="text-sm font-medium text-gray-900">
+                              {appointment.services &&
+                              appointment.services.length > 0 ? (
+                                appointment.services.length > 1 ? (
+                                  <div>
+                                    <div>{appointment.services[0].name}</div>
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      +{appointment.services.length - 1} more
+                                      service
+                                      {appointment.services.length - 1 > 1
+                                        ? "s"
+                                        : ""}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  appointment.services[0].name
+                                )
+                              ) : (
+                                appointment.service?.name || "N/A"
+                              )}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <Car className="h-4 w-4 text-gray-400 mr-2" />
+                            <div>
+                              <div className="text-sm text-gray-900">
+                                {appointment.vehicle?.model}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {appointment.vehicle?.licensePlate}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Clock className="h-4 w-4 text-green-500 mr-2" />
-                          <span className="text-sm text-gray-600">
-                            {formatDateTime(appointment.appointmentDateTime)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <button
-                          onClick={() => viewDetails(appointment)}
-                          className="text-blue-600 hover:text-blue-800 transition-colors"
-                        >
-                          <Eye className="h-5 w-5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <Clock className="h-4 w-4 text-green-500 mr-2" />
+                            <span className="text-sm text-gray-600">
+                              {formatDateTime(appointment.appointmentDateTime)}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() => viewDetails(appointment)}
+                            className="text-blue-600 hover:text-blue-800 transition-colors"
+                          >
+                            <Eye className="h-5 w-5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

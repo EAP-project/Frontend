@@ -7,6 +7,7 @@ import Link from "next/link";
 import { getAllServices, getServiceCategories, Service, ServiceCategory } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/Button";
+import Skeleton from "@/components/ui/Skeleton";
 import { Wrench, Calendar, DollarSign, Clock, ChevronDown, ChevronUp } from "lucide-react";
 
 export default function ServicesPage() {
@@ -120,7 +121,13 @@ export default function ServicesPage() {
         )}
 
         {/* Category Filter Pills */}
-        {!loading && categories.length > 0 && (
+        {loading ? (
+          <div className="mb-8 flex flex-wrap gap-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} variant="rect" className="h-8 w-32 rounded-full" />
+            ))}
+          </div>
+        ) : categories.length > 0 ? (
           <div className="mb-8 flex flex-wrap gap-3">
             <Button
               variant={selectedCategory === null ? "default" : "outline"}
@@ -145,14 +152,51 @@ export default function ServicesPage() {
               </Button>
             ))}
           </div>
-        )}
+        ) : null}
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <div className="text-lg text-gray-600">Loading services...</div>
-            </div>
+          <div className="space-y-8">
+            {/* Skeleton for category sections */}
+            {Array.from({ length: 2 }).map((_, catIndex) => (
+              <div key={catIndex} className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+                {/* Category Header Skeleton */}
+                <div className="px-6 py-5 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <Skeleton variant="rect" className="h-12 w-12 rounded-lg" />
+                    <div>
+                      <Skeleton lines={1} className="w-48 h-6 mb-2" />
+                      <Skeleton lines={1} className="w-64 h-4" />
+                    </div>
+                  </div>
+                  <Skeleton variant="rect" className="h-8 w-24 rounded-full" />
+                </div>
+
+                {/* Service Cards Grid Skeleton */}
+                <div className="px-6 pb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Array.from({ length: 3 }).map((_, cardIndex) => (
+                      <Card key={cardIndex} className="overflow-hidden border-2">
+                        {/* Image Skeleton */}
+                        <Skeleton variant="rect" className="h-48 w-full rounded-none" />
+                        
+                        {/* Content Skeleton */}
+                        <div className="p-5">
+                          <Skeleton lines={2} className="mb-4" />
+                          <Skeleton lines={3} className="mb-4" />
+                          
+                          <div className="flex items-center justify-between mb-4 pt-4 border-t border-gray-100">
+                            <Skeleton lines={1} className="w-20 h-4" />
+                            <Skeleton lines={1} className="w-16 h-6" />
+                          </div>
+                          
+                          <Skeleton variant="rect" className="h-10 w-full rounded-lg" />
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : services.length === 0 ? (
           <Card className="p-12 text-center">
