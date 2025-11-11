@@ -43,37 +43,33 @@ export function Navbar({ user, onMenuClick }: NavbarProps) {
   // Global notifications (persist across routes)
   const ctx = useNotifications();
 
-  const notificationsToShow = (ctx?.notifications as unknown as Notification[]) ?? notifications;
+  const notificationsToShow =
+    (ctx?.notifications as unknown as Notification[]) ?? notifications;
   const displayConnected = ctx?.isConnected ?? isConnected;
-  const unreadCount = ctx?.unreadCount ?? notificationsToShow.filter((n) => !n.read).length;
+  const unreadCount =
+    ctx?.unreadCount ?? notificationsToShow.filter((n) => !n.read).length;
 
-
-// Helper to derive possible topics for each role (subscribe to multiple to cover backend naming)
-const getSubscriptionTopics = useCallback(() => {
-  const role = user?.role?.toUpperCase();
-  switch (role) {
-    case "EMPLOYEE":
-      return [
-        "/topic/employee/appointments",
-        "/topic/notifications/employee",
-        "/topic/employee/notifications",
-      ];
-    case "CUSTOMER":
-      return [
-        "/topic/customer/appointments",
-        "/topic/notifications/customer",
-      ];
-    case "ADMIN":
-      return [
-        "/topic/admin/notifications",
-        "/topic/notifications/admin",
-      ];
-    default:
-      return ["/topic/notifications"];
-  }
-}, [user?.role]);
-
-  
+  // Helper to derive possible topics for each role (subscribe to multiple to cover backend naming)
+  const getSubscriptionTopics = useCallback(() => {
+    const role = user?.role?.toUpperCase();
+    switch (role) {
+      case "EMPLOYEE":
+        return [
+          "/topic/employee/appointments",
+          "/topic/notifications/employee",
+          "/topic/employee/notifications",
+        ];
+      case "CUSTOMER":
+        return [
+          "/topic/customer/appointments",
+          "/topic/notifications/customer",
+        ];
+      case "ADMIN":
+        return ["/topic/admin/notifications", "/topic/notifications/admin"];
+      default:
+        return ["/topic/notifications"];
+    }
+  }, [user?.role]);
 
   const initializeWebSocket = useCallback(() => {
     try {
@@ -82,44 +78,63 @@ const getSubscriptionTopics = useCallback(() => {
         stompClient.current.deactivate();
       }
 
-  const topics = getSubscriptionTopics();
-  console.log("🔔 Subscribing to topics:", topics, "for role:", user?.role);
+      const topics = getSubscriptionTopics();
+      console.log("🔔 Subscribing to topics:", topics, "for role:", user?.role);
 
       // Create STOMP client with SockJS
       // Backend WebSocket endpoint - change this if backend is on a different host
-      const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:8080/ws';
-      
+      const WS_URL =
+        process.env.NEXT_PUBLIC_WS_URL || "http://localhost:8080/ws";
+
       stompClient.current = new Client({
         webSocketFactory: () => new SockJS(WS_URL),
         reconnectDelay: 5000,
         heartbeatIncoming: 4000,
         heartbeatOutgoing: 4000,
-        
+
         onConnect: (frame) => {
           console.log("✅ Connected to WebSocket via STOMP:", frame);
           setIsConnected(true);
-          
+
           // Subscribe to all relevant topics for the role
           subscriptionsRef.current = [];
-          topics.forEach(topic => {
+          topics.forEach((topic) => {
             const sub = stompClient.current?.subscribe(topic, (message) => {
               try {
                 const data = JSON.parse(message.body || "{}");
                 const newNotification: Notification = {
-                  id: data.id || data.appointmentId || `notification-${Date.now()}`,
+                  id:
+                    data.id ||
+                    data.appointmentId ||
+                    `notification-${Date.now()}`,
                   title: data.title || "New Notification",
-                  message: data.message || data.content || "You have a new notification",
+                  message:
+                    data.message ||
+                    data.content ||
+                    "You have a new notification",
                   appointmentId: data.appointmentId || "",
                   notificationType: data.notificationType || "INFO",
-                  targetRole: (data.targetRole || user?.role || "").toUpperCase(),
+                  targetRole: (
+                    data.targetRole ||
+                    user?.role ||
+                    ""
+                  ).toUpperCase(),
                   timestamp: data.timestamp || Date.now(),
                   read: false,
-                  type: mapNotificationType(data.notificationType)
+                  type: mapNotificationType(data.notificationType),
                 };
                 // Accept messages received on subscribed topics without extra filtering
-                setNotifications(prev => [newNotification, ...prev.slice(0, 49)]);
+                setNotifications((prev) => [
+                  newNotification,
+                  ...prev.slice(0, 49),
+                ]);
               } catch (error) {
-                console.error("❌ Error parsing notification:", error, "raw:", message.body);
+                console.error(
+                  "❌ Error parsing notification:",
+                  error,
+                  "raw:",
+                  message.body
+                );
               }
             });
             if (sub) {
@@ -128,32 +143,31 @@ const getSubscriptionTopics = useCallback(() => {
             }
           });
         },
-        
+
         onStompError: (frame) => {
           console.error("❌ STOMP error:", frame);
           setIsConnected(false);
         },
-        
+
         onDisconnect: () => {
           console.log("🔌 WebSocket disconnected");
           setIsConnected(false);
         },
-        
+
         onWebSocketClose: (event) => {
           console.log("🔌 WebSocket connection closed:", event);
           setIsConnected(false);
         },
-        
+
         onWebSocketError: (error) => {
           console.error("❌ WebSocket error:", error);
           setIsConnected(false);
-        }
+        },
       });
 
       // Activate the connection
       stompClient.current.activate();
       console.log("🚀 Activating WebSocket connection...");
-      
     } catch (error) {
       console.error("❌ Failed to initialize WebSocket:", error);
       setIsConnected(false);
@@ -173,14 +187,22 @@ const getSubscriptionTopics = useCallback(() => {
       console.log("🧹 Cleaning up WebSocket connection");
       try {
         if (subscriptionsRef.current) {
-          subscriptionsRef.current.forEach(s => { try { s.unsubscribe(); } catch {} });
+          subscriptionsRef.current.forEach((s) => {
+            try {
+              s.unsubscribe();
+            } catch {}
+          });
           subscriptionsRef.current = null;
         }
       } catch (e) {
         console.warn("Error while unsubscribing:", e);
       }
       if (stompClient.current) {
-        try { stompClient.current.deactivate(); } catch (e) { console.warn(e); }
+        try {
+          stompClient.current.deactivate();
+        } catch (e) {
+          console.warn(e);
+        }
         stompClient.current = null;
       }
       setIsConnected(false);
@@ -190,9 +212,11 @@ const getSubscriptionTopics = useCallback(() => {
   // Test function removed to avoid unused variable lint error
 
   // Map backend notification types to frontend types
-  const mapNotificationType = (notificationType: string): "info" | "success" | "warning" | "error" => {
+  const mapNotificationType = (
+    notificationType: string
+  ): "info" | "success" | "warning" | "error" => {
     if (!notificationType) return "info";
-    
+
     switch (notificationType.toUpperCase()) {
       case "NEW_APPOINTMENT":
         return "info";
@@ -273,8 +297,10 @@ const getSubscriptionTopics = useCallback(() => {
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
     const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
+    const diffInMinutes = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60)
+    );
+
     if (diffInMinutes < 1) return "Just now";
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
@@ -283,46 +309,59 @@ const getSubscriptionTopics = useCallback(() => {
 
   const handleNotificationClick = (notification: Notification) => {
     markAsRead(notification.id);
-    
+
     // Navigate based on notification type
-    if (notification.appointmentId && notification.appointmentId !== "test-123") {
+    if (
+      notification.appointmentId &&
+      notification.appointmentId !== "test-123"
+    ) {
       router.push(`/appointments/${notification.appointmentId}`);
     }
   };
 
   // Debug connection status
   useEffect(() => {
-    console.log(`🔔 Connection status: ${displayConnected ? 'Connected' : 'Disconnected'}`);
+    console.log(
+      `🔔 Connection status: ${displayConnected ? "Connected" : "Disconnected"}`
+    );
     console.log(`🔔 Notifications count: ${notificationsToShow.length}`);
     console.log(`🔔 Unread count: ${unreadCount}`);
   }, [displayConnected, notificationsToShow.length, unreadCount]);
 
   // Catch-up: fetch scheduled appointments after employee logs in to populate notifications if missed while offline
   useEffect(() => {
-  if (ctx) return; // Provider already does catch-up
-  const role = user?.role?.toUpperCase();
-    if (role !== 'EMPLOYEE') return;
+    if (ctx) return; // Provider already does catch-up
+    const role = user?.role?.toUpperCase();
+    if (role !== "EMPLOYEE") return;
     (async () => {
       try {
         const apts = await getScheduledAppointments();
         // Map to notifications, avoid duplicates by checking existing ids
-        const existingIds = new Set(notifications.map(n => n.id));
-        const mapped: Notification[] = apts.slice(0, 10).map(ap => ({
-          id: String(ap.id),
-          title: "New Appointment",
-          message: `Appointment #${ap.id} scheduled for ${new Date(ap.appointmentDateTime).toLocaleString()}`,
-          appointmentId: String(ap.id),
-          notificationType: "NEW_APPOINTMENT",
-          targetRole: "EMPLOYEE",
-          timestamp: Date.now(),
-          read: false,
-          type: "info" as const,
-        })).filter(n => !existingIds.has(n.id));
+        const existingIds = new Set(notifications.map((n) => n.id));
+        const mapped: Notification[] = apts
+          .slice(0, 10)
+          .map((ap) => ({
+            id: String(ap.id),
+            title: "New Appointment",
+            message: `Appointment #${ap.id} scheduled for ${new Date(
+              ap.appointmentDateTime
+            ).toLocaleString()}`,
+            appointmentId: String(ap.id),
+            notificationType: "NEW_APPOINTMENT",
+            targetRole: "EMPLOYEE",
+            timestamp: Date.now(),
+            read: false,
+            type: "info" as const,
+          }))
+          .filter((n) => !existingIds.has(n.id));
         if (mapped.length) {
-          setNotifications(prev => [...mapped, ...prev].slice(0, 50));
+          setNotifications((prev) => [...mapped, ...prev].slice(0, 50));
         }
       } catch (e) {
-        console.warn('Failed to fetch scheduled appointments for notifications:', e);
+        console.warn(
+          "Failed to fetch scheduled appointments for notifications:",
+          e
+        );
       }
     })();
   }, [ctx, user?.role, notifications]);
@@ -331,44 +370,42 @@ const getSubscriptionTopics = useCallback(() => {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Left Side - Menu Button (Mobile) & Title */}
+          {/* Left Side - Menu Button (Mobile) & Welcome Text */}
           <div className="flex items-center gap-4">
-
-            <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">
-          Welcome, {user.firstName} {user.lastName}
-        </h1>
-        <p className="text-gray-600 mt-2">Employee Dashboard</p>
-      </div>
-
-
             <button
               onClick={() => onMenuClick?.()}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
               aria-label="Toggle menu"
             >
               <Menu className="h-6 w-6 text-gray-600" />
             </button>
 
+            {/* Welcome Text */}
+            <div className="hidden md:block">
+              <h1 className="text-xl font-semibold text-gray-800">
+                Welcome back, {user?.firstName}!
+              </h1>
+            </div>
 
-          
-            
             {/* Connection Status Indicator */}
-            <div className="flex items-center gap-2 text-xs" title={displayConnected ? "Connected to notifications" : "Disconnected"}>
+            <div
+              className="flex items-center gap-2 text-xs"
+              title={
+                displayConnected ? "Connected to notifications" : "Disconnected"
+              }
+            >
               <div
                 className={`h-2 w-2 rounded-full ${
                   displayConnected ? "bg-green-500 animate-pulse" : "bg-red-500"
                 }`}
               />
-              <span className="text-gray-500 hidden md:inline">
+              <span className="text-gray-500 hidden lg:inline">
                 {displayConnected ? "Live" : "Offline"}
               </span>
             </div>
-
-            
-
           </div>
           {/* End Left Side */}
+
           {/* Right Side - Notifications & User Menu */}
           <div className="flex items-center gap-3">
             {/* Notifications Dropdown */}
@@ -381,7 +418,11 @@ const getSubscriptionTopics = useCallback(() => {
                 className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors group"
                 aria-label="Notifications"
               >
-                <Bell className={`h-6 w-6 ${displayConnected ? "text-gray-600" : "text-gray-400"} group-hover:text-blue-600`} />
+                <Bell
+                  className={`h-6 w-6 ${
+                    displayConnected ? "text-gray-600" : "text-gray-400"
+                  } group-hover:text-blue-600`}
+                />
                 {unreadCount > 0 && (
                   <span className="absolute top-1 right-1 h-5 w-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
                     {unreadCount > 9 ? "9+" : unreadCount}
@@ -396,7 +437,7 @@ const getSubscriptionTopics = useCallback(() => {
                     className="fixed inset-0 z-10"
                     onClick={() => setShowNotifications(false)}
                   />
-                  
+
                   <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-20 max-h-96 overflow-hidden flex flex-col">
                     <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
                       <div>
@@ -404,7 +445,9 @@ const getSubscriptionTopics = useCallback(() => {
                           Notifications
                         </h3>
                         <p className="text-xs text-gray-500 mt-1">
-                          {displayConnected ? "Real-time updates" : "Reconnecting..."}
+                          {displayConnected
+                            ? "Real-time updates"
+                            : "Reconnecting..."}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -433,10 +476,9 @@ const getSubscriptionTopics = useCallback(() => {
                           <Bell className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                           <p className="font-medium">No notifications</p>
                           <p className="text-sm text-gray-400 mt-1">
-                            {isConnected 
-                              ? "You'll see new appointments here" 
-                              : "Connecting to notification service..."
-                            }
+                            {isConnected
+                              ? "You'll see new appointments here"
+                              : "Connecting to notification service..."}
                           </p>
                         </div>
                       ) : (
@@ -444,10 +486,14 @@ const getSubscriptionTopics = useCallback(() => {
                           {notificationsToShow.map((notification) => (
                             <div
                               key={notification.id}
-                              className={`p-4 hover:bg-gray-50 cursor-pointer transition-all duration-200 ${
-                                getNotificationColor(notification.type)
-                              } ${!notification.read ? "ring-1 ring-blue-200" : ""}`}
-                              onClick={() => handleNotificationClick(notification)}
+                              className={`p-4 hover:bg-gray-50 cursor-pointer transition-all duration-200 ${getNotificationColor(
+                                notification.type
+                              )} ${
+                                !notification.read ? "ring-1 ring-blue-200" : ""
+                              }`}
+                              onClick={() =>
+                                handleNotificationClick(notification)
+                              }
                             >
                               <div className="flex items-start gap-3">
                                 <div className="text-lg flex-shrink-0">
@@ -490,7 +536,8 @@ const getSubscriptionTopics = useCallback(() => {
                     {notificationsToShow.length > 0 && (
                       <div className="p-3 border-t border-gray-200 text-center bg-gray-50">
                         <span className="text-sm text-gray-500">
-                          {notificationsToShow.length} notification{notificationsToShow.length !== 1 ? 's' : ''}
+                          {notificationsToShow.length} notification
+                          {notificationsToShow.length !== 1 ? "s" : ""}
                           {unreadCount > 0 && ` • ${unreadCount} unread`}
                         </span>
                       </div>
@@ -524,7 +571,7 @@ const getSubscriptionTopics = useCallback(() => {
                     className="fixed inset-0 z-10"
                     onClick={() => setShowUserMenu(false)}
                   />
-                  
+
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
                     <div className="p-4 border-b border-gray-200">
                       <p className="text-sm font-semibold text-gray-900">
@@ -552,13 +599,10 @@ const getSubscriptionTopics = useCallback(() => {
               )}
             </div>
           </div>
-        </div> 
+        </div>
       </div>
     </nav>
   );
 }
- 
-  
-
 
 export default Navbar;
