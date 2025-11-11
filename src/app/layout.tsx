@@ -1,5 +1,6 @@
 import "./globals.css";
 import type { ReactNode } from "react";
+import ClientProviders from "./ClientProviders";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
@@ -9,7 +10,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="description" content="Service time logging & appointment booking system" />
       </head>
       <body className="antialiased bg-gray-50">
-        {children}
+        <ClientProviders>
+          {children}
+        </ClientProviders>
       </body>
     </html>
   );

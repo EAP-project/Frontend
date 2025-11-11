@@ -202,13 +202,6 @@ export default function EmployeeDashboard() {
 
   return (
     <div className="p-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">
-          Welcome, {user.firstName} {user.lastName}
-        </h1>
-        <p className="text-gray-600 mt-2">Employee Dashboard</p>
-      </div>
 
       {error && (
         <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
