@@ -1,5 +1,6 @@
 import "./globals.css";
 import type { ReactNode } from "react";
+import Chatbot from "@/components/Chatbot";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
@@ -10,6 +11,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body className="antialiased bg-gray-50">
         {children}
+        <Chatbot />
       </body>
     </html>
   );
