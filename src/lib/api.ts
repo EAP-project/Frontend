@@ -548,6 +548,22 @@ export async function getAppointmentById(id: number): Promise<Appointment> {
   return await response.json();
 }
 
+// Convenience helper: get all services for a given appointment by reusing getAppointmentById
+// If your backend exposes a dedicated endpoint like `/appointments/{id}/services`,
+// you can swap this implementation to call that endpoint instead.
+export async function getAppointmentServices(id: number): Promise<Service[]> {
+  const appt = await getAppointmentById(id);
+  // Prefer the array if backend provides it
+  if (Array.isArray(appt.services) && appt.services.length) {
+    return appt.services;
+  }
+  // Fallback to single service shape
+  if (appt.service) {
+    return [appt.service];
+  }
+  return [];
+}
+
 // Get all appointments (for admin/employee)
 export async function getAllAppointments(status?: string): Promise<Appointment[]> {
   const token = localStorage.getItem('token');

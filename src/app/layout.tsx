@@ -1,5 +1,6 @@
 import "./globals.css";
 import type { ReactNode } from "react";
+import ClientProviders from "./ClientProviders";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
@@ -16,7 +17,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <link rel="apple-touch-icon" href="/favicon.svg" />
         <meta name="theme-color" content="#0ea5a4" />
       </head>
-      <body className="antialiased bg-gray-50">{children}</body>
+      <body className="antialiased bg-gray-50">
+        <ClientProviders>
+          {children}
+        </ClientProviders>
+      </body>
     </html>
   );
 }
