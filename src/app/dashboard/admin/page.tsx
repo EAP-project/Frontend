@@ -121,7 +121,7 @@ export default function AdminDashboard() {
       bgColor: "bg-green-50",
     },
     {
-      title: "Today&apos;s Appointments",
+      title: "Today's Appointments",
       value: todayAppointments.length.toString(),
       icon: <Clock className="h-6 w-6 text-purple-600" />,
       bgColor: "bg-purple-50",
