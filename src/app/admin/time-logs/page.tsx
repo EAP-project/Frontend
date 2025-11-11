@@ -1,44 +1,43 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getAllTimeLogs, TimeLog } from "@/lib/api";
+import Skeleton from "@/components/ui/Skeleton";
 import { Clock, Calendar, Car, FileText, User } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AdminTimeLogsPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    role?: string;
-  } | null>(null);
+  const { user, token, initialized } = useAuth();
   const [timeLogs, setTimeLogs] = useState<TimeLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentTime, setCurrentTime] = useState(new Date());
   const [filterEmployee, setFilterEmployee] = useState<string>("");
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userStr = localStorage.getItem("user");
+  const fetchTimeLogs = useCallback(async () => {
+    try {
+      setLoading(true);
+      const logs = await getAllTimeLogs();
+      setTimeLogs(logs);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to fetch time logs");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    if (!token || !userStr) {
+  useEffect(() => {
+    if (!initialized) return;
+
+    if (!user || !token) {
       router.push("/login");
       return;
     }
 
-    try {
-      const parsedUser = JSON.parse(userStr);
-      setUser(parsedUser);
-
-      if (parsedUser.role !== "ADMIN") {
-        router.push("/dashboard/customer");
-        return;
-      }
-    } catch (err) {
-      console.error("Error parsing user:", err);
-      router.push("/login");
+    if (user.role !== "ADMIN") {
+      router.push("/dashboard/customer");
       return;
     }
 
@@ -50,21 +49,9 @@ export default function AdminTimeLogsPage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [router]);
+  }, [initialized, user, token, router, fetchTimeLogs]);
 
-  const fetchTimeLogs = async () => {
-    try {
-      setLoading(true);
-      const logs = await getAllTimeLogs();
-      setTimeLogs(logs);
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch time logs");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatDateTime = (dateTimeStr: string) => {
+  const formatDateTime = useCallback((dateTimeStr: string) => {
     const date = new Date(dateTimeStr);
     return date.toLocaleString("en-US", {
       year: "numeric",
@@ -73,7 +60,7 @@ export default function AdminTimeLogsPage() {
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
+  }, []);
 
   // Calculate live duration for ongoing logs
   const calculateDuration = (log: TimeLog): string => {
@@ -126,22 +113,23 @@ export default function AdminTimeLogsPage() {
     )}:${String(seconds).padStart(2, "0")}`;
   };
 
-  // Get unique employee names for filter
-  const getUniqueEmployees = () => {
+  // Memoize unique employees list to avoid recalculating on every render
+  const uniqueEmployees = useMemo(() => {
     const employees = new Set<string>();
     timeLogs.forEach((log) => {
       employees.add(`${log.employeeFirstName} ${log.employeeLastName}`);
     });
     return Array.from(employees).sort();
-  };
+  }, [timeLogs]);
 
-  // Filter time logs by employee
-  const filteredTimeLogs = filterEmployee
-    ? timeLogs.filter(
-        (log) =>
-          `${log.employeeFirstName} ${log.employeeLastName}` === filterEmployee
-      )
-    : timeLogs;
+  // Memoize filtered time logs
+  const filteredTimeLogs = useMemo(() => {
+    if (!filterEmployee) return timeLogs;
+    return timeLogs.filter(
+      (log) =>
+        `${log.employeeFirstName} ${log.employeeLastName}` === filterEmployee
+    );
+  }, [timeLogs, filterEmployee]);
 
   // Calculate total for filtered logs
   const calculateFilteredTotalDuration = (): string => {
@@ -170,31 +158,6 @@ export default function AdminTimeLogsPage() {
     )}:${String(seconds).padStart(2, "0")}`;
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-screen">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading time logs...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex h-screen">
-        <div className="flex-1 p-6">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex h-screen bg-gray-50">
       <div className="flex-1 overflow-auto">
@@ -208,43 +171,66 @@ export default function AdminTimeLogsPage() {
             </p>
           </div>
 
+          {/* Error Message - Inline */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+              {error}
+            </div>
+          )}
+
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Total Time Logs</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {timeLogs.length}
-                  </p>
+            {loading ? (
+              Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="bg-white rounded-lg shadow p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Skeleton lines={1} className="w-24 h-4 mb-2" />
+                      <Skeleton lines={1} className="w-16 h-8" />
+                    </div>
+                    <Skeleton variant="circle" className="h-8 w-8" />
+                  </div>
                 </div>
-                <Clock className="h-8 w-8 text-blue-500" />
-              </div>
-            </div>
+              ))
+            ) : (
+              <>
+                <div className="bg-white rounded-lg shadow p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Time Logs</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {timeLogs.length}
+                      </p>
+                    </div>
+                    <Clock className="h-8 w-8 text-blue-500" />
+                  </div>
+                </div>
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Active Employees</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {getUniqueEmployees().length}
-                  </p>
+                <div className="bg-white rounded-lg shadow p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Active Employees</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {uniqueEmployees.length}
+                      </p>
+                    </div>
+                    <User className="h-8 w-8 text-green-500" />
+                  </div>
                 </div>
-                <User className="h-8 w-8 text-green-500" />
-              </div>
-            </div>
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Total Time Logged</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {calculateTotalDuration()}
-                  </p>
+                <div className="bg-white rounded-lg shadow p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Time Logged</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {calculateTotalDuration()}
+                      </p>
+                    </div>
+                    <Clock className="h-8 w-8 text-purple-500" />
+                  </div>
                 </div>
-                <Clock className="h-8 w-8 text-purple-500" />
-              </div>
-            </div>
+              </>
+            )}
           </div>
 
           {/* Filter */}
@@ -259,7 +245,7 @@ export default function AdminTimeLogsPage() {
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Employees</option>
-                {getUniqueEmployees().map((employee) => (
+                {uniqueEmployees.map((employee) => (
                   <option key={employee} value={employee}>
                     {employee}
                   </option>
@@ -283,7 +269,66 @@ export default function AdminTimeLogsPage() {
           </div>
 
           {/* Time Logs Table */}
-          {filteredTimeLogs.length === 0 ? (
+          {loading ? (
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Employee
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Service
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Vehicle
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Start Time
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        End Time
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Duration
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Notes
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <tr key={index}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton lines={2} className="w-36" />
+                        </td>
+                        <td className="px-6 py-4">
+                          <Skeleton lines={1} className="w-32 h-4" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton lines={2} className="w-28" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton lines={1} className="w-36 h-4" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton lines={1} className="w-36 h-4" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton lines={1} className="w-20 h-4" />
+                        </td>
+                        <td className="px-6 py-4">
+                          <Skeleton lines={1} className="w-24 h-4" />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : filteredTimeLogs.length === 0 ? (
             <div className="bg-white rounded-lg shadow p-8 text-center">
               <Clock className="h-16 w-16 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 text-lg">No time logs found</p>

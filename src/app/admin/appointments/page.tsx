@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Appointment, getActiveAppointments } from "@/lib/api";
+import Skeleton from "@/components/ui/Skeleton";
+import { useAuth } from "@/context/AuthContext";
 import {
   Calendar,
   Clock,
@@ -16,12 +18,7 @@ import {
 
 export default function AdminAppointmentsPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    role?: string;
-  } | null>(null);
+  const { user, token, initialized } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -29,51 +26,45 @@ export default function AdminAppointmentsPage() {
     useState<Appointment | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userStr = localStorage.getItem("user");
+  const fetchAppointments = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await getActiveAppointments();
+      setAppointments(data);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to fetch appointments");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    if (!token || !userStr) {
+  useEffect(() => {
+    if (!initialized) return;
+    
+    if (!user || !token) {
       router.push("/login");
       return;
     }
 
-    try {
-      const parsedUser = JSON.parse(userStr);
-      setUser(parsedUser);
-
-      if (parsedUser.role !== "ADMIN") {
-        router.push("/dashboard/customer");
-        return;
-      }
-    } catch (err) {
-      console.error("Error parsing user:", err);
-      router.push("/login");
+    if (user.role !== "ADMIN") {
+      router.push("/dashboard/customer");
       return;
     }
 
     fetchAppointments();
-  }, [router]);
+  }, [initialized, user, token, router, fetchAppointments]);
 
-  const fetchAppointments = async () => {
-    try {
-      setLoading(true);
-      const data = await getActiveAppointments();
-      // Sort by date, newest first
-      const sorted = data.sort(
-        (a, b) =>
-          new Date(b.appointmentDateTime).getTime() -
-          new Date(a.appointmentDateTime).getTime()
-      );
-      setAppointments(sorted);
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch appointments");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Memoize sorted appointments to avoid sorting on every render
+  const sortedAppointments = useMemo(() => {
+    return [...appointments].sort(
+      (a, b) =>
+        new Date(b.appointmentDateTime).getTime() -
+        new Date(a.appointmentDateTime).getTime()
+    );
+  }, [appointments]);
 
-  const formatDateTime = (dateTimeStr: string) => {
+  // Memoize date formatters to avoid recreating functions on every render
+  const formatDateTime = useCallback((dateTimeStr: string) => {
     const date = new Date(dateTimeStr);
     return date.toLocaleString("en-US", {
       year: "numeric",
@@ -82,24 +73,24 @@ export default function AdminAppointmentsPage() {
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
+  }, []);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
-  };
+  }, []);
 
-  const formatTime = (dateString: string) => {
+  const formatTime = useCallback((dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
+  }, []);
 
   const getStatusBadge = (status: string) => {
     const statusStyles: { [key: string]: string } = {
@@ -130,31 +121,6 @@ export default function AdminAppointmentsPage() {
     setSelectedAppointment(null);
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-screen">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading appointments...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex h-screen">
-        <div className="flex-1 p-6">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex h-screen bg-gray-50">
       <div className="flex-1 overflow-auto">
@@ -168,17 +134,14 @@ export default function AdminAppointmentsPage() {
             </p>
           </div>
 
-          {appointments.length === 0 ? (
-            <div className="bg-white rounded-lg shadow p-8 text-center">
-              <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg">
-                No active appointments found
-              </p>
-              <p className="text-gray-400 mt-2">
-                All appointments are either completed or cancelled
-              </p>
+          {/* Error Message - Inline */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+              {error}
             </div>
-          ) : (
+          )}
+
+          {loading ? (
             <div className="bg-white rounded-lg shadow overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
@@ -208,7 +171,77 @@ export default function AdminAppointmentsPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {appointments.map((appointment) => (
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <tr key={index}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton lines={1} className="w-12 h-4" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton lines={2} className="w-40" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton lines={1} className="w-32 h-4" />
+                        </td>
+                        <td className="px-6 py-4">
+                          <Skeleton lines={1} className="w-36 h-4" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton lines={2} className="w-28" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton lines={1} className="w-20 h-6 rounded-full" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton variant="circle" className="h-5 w-5" />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : appointments.length === 0 ? (
+            <div className="bg-white rounded-lg shadow p-8 text-center">
+              <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg">
+                No active appointments found
+              </p>
+              <p className="text-gray-400 mt-2">
+                All appointments are either completed or cancelled
+              </p>
+            </div>
+          ) : (
+
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ID
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Customer
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date & Time
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Service
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Vehicle
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {sortedAppointments.map((appointment) => (
                       <tr
                         key={appointment.id}
                         className="hover:bg-gray-50 transition-colors"

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import {
   getAllAppointments,
   getAllServices,
@@ -9,6 +10,7 @@ import {
   Service,
 } from "@/lib/api";
 import { Card } from "@/components/ui/card";
+import Skeleton from "@/components/ui/Skeleton";
 import {
   Users,
   Wrench,
@@ -22,31 +24,40 @@ import {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<{
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    role?: string;
-  } | null>(null);
+  const { user, token, initialized } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userStr = localStorage.getItem("user");
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      // Fetch appointments and services in parallel for better performance
+      const [appointmentsData, servicesData] = await Promise.all([
+        getAllAppointments(),
+        getAllServices(),
+      ]);
+      setAppointments(appointmentsData);
+      setServices(servicesData);
+    } catch (err) {
+      console.error("Failed to load data:", err);
+      setError(err instanceof Error ? err.message : "Failed to load data");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    if (!token || !userStr) {
+  useEffect(() => {
+    if (!initialized) return;
+
+    if (!user || !token) {
       router.push("/login");
       return;
     }
 
-    const userData = JSON.parse(userStr);
-    setUser(userData);
-
-    if (!userData.role?.toUpperCase().includes("ADMIN")) {
-      const role = userData.role?.toUpperCase() || "";
+    if (!user.role?.toUpperCase().includes("ADMIN")) {
+      const role = user.role?.toUpperCase() || "";
       if (
         role.includes("EMPLOYEE") ||
         role.includes("TECHNICIAN") ||
@@ -61,50 +72,40 @@ export default function AdminDashboard() {
     }
 
     loadData();
-  }, [router]);
+  }, [initialized, user, token, router, loadData]);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [appointmentsData, servicesData] = await Promise.all([
-        getAllAppointments(),
-        getAllServices(),
-      ]);
-      setAppointments(appointmentsData);
-      setServices(servicesData);
-    } catch (err) {
-      console.error("Failed to load data:", err);
-      setError(err instanceof Error ? err.message : "Failed to load data");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Memoize expensive calculations to avoid recalculating on every render
+  const appointmentStats = useMemo(() => {
+    const pending = appointments.filter((apt) => apt.status === "PENDING");
+    const confirmed = appointments.filter((apt) => apt.status === "CONFIRMED");
+    const completed = appointments.filter((apt) => apt.status === "COMPLETED");
+    const cancelled = appointments.filter((apt) => apt.status === "CANCELLED");
+    
+    const today = new Date();
+    const todayStr = today.toDateString();
+    const todayApts = appointments.filter((apt) => {
+      const aptDate = new Date(apt.appointmentDateTime);
+      return aptDate.toDateString() === todayStr;
+    });
 
-  if (!user || loading) {
+    return {
+      pending,
+      confirmed,
+      completed,
+      cancelled,
+      today: todayApts,
+    };
+  }, [appointments]);
+
+  const { pending: pendingAppointments, confirmed: confirmedAppointments, completed: completedAppointments, cancelled: cancelledAppointments, today: todayAppointments } = appointmentStats;
+
+  if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Loading...</div>
       </div>
     );
   }
-
-  const pendingAppointments = appointments.filter(
-    (apt) => apt.status === "PENDING"
-  );
-  const confirmedAppointments = appointments.filter(
-    (apt) => apt.status === "CONFIRMED"
-  );
-  const completedAppointments = appointments.filter(
-    (apt) => apt.status === "COMPLETED"
-  );
-  const cancelledAppointments = appointments.filter(
-    (apt) => apt.status === "CANCELLED"
-  );
-  const todayAppointments = appointments.filter((apt) => {
-    const aptDate = new Date(apt.appointmentDateTime);
-    const today = new Date();
-    return aptDate.toDateString() === today.toDateString();
-  });
 
   const stats = [
     {
@@ -193,33 +194,47 @@ export default function AdminDashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => (
-            <Card
-              key={index}
-              className={`p-6 ${stat.bgColor} ${
-                stat.title === "Active Services"
-                  ? "cursor-pointer hover:shadow-lg transition-shadow"
-                  : ""
-              }`}
-              onClick={() => {
-                if (stat.title === "Active Services") {
-                  router.push("/admin/services");
-                }
-              }}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">
-                    {stat.title}
-                  </p>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {stat.value}
-                  </p>
+          {loading ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <Card key={index} className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <Skeleton lines={1} className="w-32 h-4 mb-2" />
+                    <Skeleton lines={1} className="w-16 h-8" />
+                  </div>
+                  <Skeleton variant="circle" className="h-10 w-10" />
                 </div>
-                <div className={stat.bgColor}>{stat.icon}</div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            ))
+          ) : (
+            stats.map((stat, index) => (
+              <Card
+                key={index}
+                className={`p-6 ${stat.bgColor} ${
+                  stat.title === "Active Services"
+                    ? "cursor-pointer hover:shadow-lg transition-shadow"
+                    : ""
+                }`}
+                onClick={() => {
+                  if (stat.title === "Active Services") {
+                    router.push("/admin/services");
+                  }
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">
+                      {stat.title}
+                    </p>
+                    <p className="text-3xl font-bold text-gray-900">
+                      {stat.value}
+                    </p>
+                  </div>
+                  <div className={stat.bgColor}>{stat.icon}</div>
+                </div>
+              </Card>
+            ))
+          )}
         </div>
 
         {/* Status Breakdown */}
@@ -227,23 +242,39 @@ export default function AdminDashboard() {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Appointment Status Overview
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {statusBreakdown.map((item, index) => (
-              <div key={index} className={`p-4 rounded-lg ${item.bgColor}`}>
-                <div className="flex items-center gap-3">
-                  {item.icon}
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">
-                      {item.status}
-                    </p>
-                    <p className={`text-2xl font-bold ${item.color}`}>
-                      {item.count}
-                    </p>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="p-4 rounded-lg bg-gray-50">
+                  <div className="flex items-center gap-3">
+                    <Skeleton variant="circle" className="h-5 w-5" />
+                    <div className="flex-1">
+                      <Skeleton lines={1} className="w-20 h-4 mb-1" />
+                      <Skeleton lines={1} className="w-12 h-7" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {statusBreakdown.map((item, index) => (
+                <div key={index} className={`p-4 rounded-lg ${item.bgColor}`}>
+                  <div className="flex items-center gap-3">
+                    {item.icon}
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">
+                        {item.status}
+                      </p>
+                      <p className={`text-2xl font-bold ${item.color}`}>
+                        {item.count}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
 
         {/* Today&apos;s Appointments */}
@@ -251,7 +282,24 @@ export default function AdminDashboard() {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Today&apos;s Appointments
           </h3>
-          {todayAppointments.length === 0 ? (
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <Skeleton lines={1} className="w-48 h-5 mb-2" />
+                      <Skeleton lines={1} className="w-64 h-4" />
+                    </div>
+                    <div className="text-right">
+                      <Skeleton lines={1} className="w-16 h-5 mb-1" />
+                      <Skeleton lines={1} className="w-20 h-6 rounded-full" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : todayAppointments.length === 0 ? (
             <p className="text-gray-500">
               No appointments scheduled for today.
             </p>
@@ -315,7 +363,23 @@ export default function AdminDashboard() {
               <Wrench className="h-4 w-4" />
             </button>
           </div>
-          {services.length === 0 ? (
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-start justify-between mb-2">
+                    <Skeleton lines={1} className="w-32 h-5" />
+                    <Skeleton lines={1} className="w-16 h-6 rounded-full" />
+                  </div>
+                  <Skeleton lines={2} className="w-full mb-2" />
+                  <div className="flex items-center justify-between">
+                    <Skeleton lines={1} className="w-16 h-5" />
+                    <Skeleton lines={1} className="w-12 h-4" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : services.length === 0 ? (
             <div className="text-center py-8">
               <Wrench className="h-12 w-12 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-500 mb-4">No services available yet.</p>
@@ -373,7 +437,25 @@ export default function AdminDashboard() {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Recent Appointments
           </h3>
-          {appointments.length === 0 ? (
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <Skeleton lines={1} className="w-48 h-5 mb-2" />
+                      <Skeleton lines={1} className="w-56 h-4 mb-1" />
+                      <Skeleton lines={1} className="w-32 h-3" />
+                    </div>
+                    <div className="text-right">
+                      <Skeleton lines={1} className="w-24 h-5 mb-1" />
+                      <Skeleton lines={1} className="w-20 h-6 rounded-full" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : appointments.length === 0 ? (
             <p className="text-gray-500">No appointments found.</p>
           ) : (
             <div className="space-y-3">

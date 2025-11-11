@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useRef, useState, useCallb
 import SockJS from "sockjs-client";
 import { Client, StompSubscription } from "@stomp/stompjs";
 import { getScheduledAppointments } from "@/lib/api";
+import { useAuth } from "./AuthContext";
 
 export interface NotificationItem {
   id: string;
@@ -57,19 +58,14 @@ function mapNotificationType(notificationType?: string): NotificationItem["type"
 }
 
 export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user: authUser, initialized } = useAuth();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const stompClient = useRef<Client | null>(null);
   const subsRef = useRef<StompSubscription[] | null>(null);
-  const [user, setUser] = useState<{ firstName?: string; lastName?: string; email?: string; role?: string } | null>(null);
-
-  // Load user from localStorage (basic approach; consider secure context)
-  useEffect(() => {
-    try {
-      const userStr = localStorage.getItem("user");
-      if (userStr) setUser(JSON.parse(userStr));
-    } catch {}
-  }, []);
+  
+  // Use user from AuthContext
+  const user = authUser;
 
   // Persist notifications to localStorage
   useEffect(() => {
@@ -114,19 +110,26 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [user?.role]);
 
   const initWebSocket = useCallback(() => {
-    if (!user?.role) return;
+    // Wait for auth to initialize and user to be available
+    if (!initialized || !user?.role) {
+      console.log("⏳ Waiting for auth initialization or user role...");
+      return;
+    }
+    
     try {
       if (stompClient.current) {
         stompClient.current.deactivate();
       }
       const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "http://localhost:8080/ws";
       const topics = getTopics();
+      console.log("🔌 Initializing WebSocket for user:", user.firstName, "Role:", user.role);
       stompClient.current = new Client({
         webSocketFactory: () => new SockJS(WS_URL),
         reconnectDelay: 5000,
         heartbeatIncoming: 4000,
         heartbeatOutgoing: 4000,
         onConnect: () => {
+          console.log("✅ WebSocket connected successfully");
           setIsConnected(true);
           subsRef.current = [];
           topics.forEach(t => {
@@ -152,17 +155,29 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
             if (s) subsRef.current?.push(s);
           });
         },
-        onDisconnect: () => setIsConnected(false),
-        onWebSocketClose: () => setIsConnected(false),
-        onWebSocketError: () => setIsConnected(false),
-        onStompError: () => setIsConnected(false),
+        onDisconnect: () => {
+          console.log("🔌 WebSocket disconnected");
+          setIsConnected(false);
+        },
+        onWebSocketClose: () => {
+          console.log("🔌 WebSocket connection closed");
+          setIsConnected(false);
+        },
+        onWebSocketError: (error) => {
+          console.error("❌ WebSocket error:", error);
+          setIsConnected(false);
+        },
+        onStompError: (frame) => {
+          console.error("❌ STOMP error:", frame);
+          setIsConnected(false);
+        },
       });
       stompClient.current.activate();
     } catch (e) {
       console.warn("WebSocket init failed", e);
       setIsConnected(false);
     }
-  }, [user?.role, getTopics]);
+  }, [initialized, user?.role, user?.firstName, getTopics]);
 
   // Re-init websocket when role changes
   useEffect(() => {

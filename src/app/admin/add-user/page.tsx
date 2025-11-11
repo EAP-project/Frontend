@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/Button";
+import Skeleton from "@/components/ui/Skeleton";
 import {
   Form,
   FormControl,
@@ -60,12 +62,7 @@ type AddUserFormValues = z.infer<typeof formSchema>;
 
 export default function AddUserPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    role?: string;
-  } | null>(null);
+  const { user, token, initialized } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -74,28 +71,18 @@ export default function AddUserPage() {
   const [confirmType, setConfirmType] = useState<"reset" | "add" | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userStr = localStorage.getItem("user");
+    if (!initialized) return;
 
-    if (!token || !userStr) {
+    if (!user || !token) {
       router.push("/login");
       return;
     }
 
-    try {
-      const parsedUser = JSON.parse(userStr);
-      setUser(parsedUser);
-
-      if (parsedUser.role !== "ADMIN") {
-        router.push("/dashboard/customer");
-        return;
-      }
-    } catch (err) {
-      console.error("Error parsing user:", err);
-      router.push("/login");
+    if (user.role !== "ADMIN") {
+      router.push("/dashboard/customer");
       return;
     }
-  }, [router]);
+  }, [initialized, user, token, router]);
 
   const form = useForm<AddUserFormValues>({
     resolver: zodResolver(formSchema),
@@ -163,19 +150,6 @@ export default function AddUserPage() {
       setConfirmType(null);
     }
   };
-
-  if (!user) {
-    return (
-      <div className="flex h-screen">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex h-screen bg-gray-50">

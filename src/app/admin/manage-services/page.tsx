@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import {
   getAllServices,
   deleteService,
@@ -18,6 +19,7 @@ import {
 } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/Button";
+import Skeleton from "@/components/ui/Skeleton";
 import {
   Wrench,
   Plus,
@@ -39,16 +41,11 @@ import {
 
 export default function ServicesManagementPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{
-    firstName?: string;
-    lastName?: string;
-    role?: string;
-  } | null>(null);
+  const { user, token, initialized } = useAuth();
 
   // View Mode State
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
-  const [filteredServices, setFilteredServices] = useState<Service[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(
@@ -90,32 +87,27 @@ export default function ServicesManagementPage() {
   );
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userStr = localStorage.getItem("user");
+    if (!initialized) return;
 
-    if (!token || !userStr) {
+    if (!user || !token) {
       router.push("/login");
       return;
     }
 
-    const userData = JSON.parse(userStr);
-    setUser(userData);
-
-    if (!userData.role?.toUpperCase().includes("ADMIN")) {
+    if (!user.role?.toUpperCase().includes("ADMIN")) {
       router.push("/dashboard/customer");
       return;
     }
 
     loadServices();
     loadCategories();
-  }, [router]);
+  }, [initialized, user, token, router]);
 
   const loadServices = async () => {
     try {
       setLoading(true);
       const data = await getAllServices();
       setServices(data);
-      setFilteredServices(data);
     } catch (err) {
       console.error("Failed to load services:", err);
       setError(err instanceof Error ? err.message : "Failed to load services");
@@ -427,14 +419,16 @@ export default function ServicesManagementPage() {
     resetForms();
   };
 
-  useEffect(() => {
+  // Memoize filtered services to avoid unnecessary recalculations
+  const filteredServicesMemo = useMemo(() => {
     let filtered = services;
 
     if (searchQuery) {
+      const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (service) =>
-          service.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          service.description?.toLowerCase().includes(searchQuery.toLowerCase())
+          service.name?.toLowerCase().includes(query) ||
+          service.description?.toLowerCase().includes(query)
       );
     }
 
@@ -444,17 +438,20 @@ export default function ServicesManagementPage() {
       );
     }
 
-    setFilteredServices(filtered);
+    return filtered;
   }, [searchQuery, selectedCategory, services]);
 
-  const servicesByCategory = categories
-    .map((category) => ({
-      category,
-      services: filteredServices.filter(
-        (service) => service.category?.id === category.id
-      ),
-    }))
-    .filter((group) => group.services.length > 0 || selectedCategory === "all");
+  // Memoize services grouped by category
+  const servicesByCategory = useMemo(() => {
+    return categories
+      .map((category) => ({
+        category,
+        services: filteredServicesMemo.filter(
+          (service) => service.category?.id === category.id
+        ),
+      }))
+      .filter((group) => group.services.length > 0 || selectedCategory === "all");
+  }, [categories, filteredServicesMemo, selectedCategory]);
 
   const toggleCategory = (categoryId: number) => {
     setExpandedCategories((prev) => {
@@ -468,18 +465,20 @@ export default function ServicesManagementPage() {
     });
   };
 
-  const getServicesCountByCategory = (categoryId: number) => {
-    return services.filter((service) => service.category?.id === categoryId)
-      .length;
-  };
+  // Memoize category count calculations
+  const serviceCounts = useMemo(() => {
+    const counts = new Map<number, number>();
+    services.forEach((service) => {
+      if (service.category?.id) {
+        counts.set(service.category.id, (counts.get(service.category.id) || 0) + 1);
+      }
+    });
+    return counts;
+  }, [services]);
 
-  if (!user || (loading && services.length === 0)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
-      </div>
-    );
-  }
+  const getServicesCountByCategory = useCallback((categoryId: number) => {
+    return serviceCounts.get(categoryId) || 0;
+  }, [serviceCounts]);
 
   return (
     <div className="p-8">
@@ -841,49 +840,65 @@ export default function ServicesManagementPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <Card className="p-6 bg-blue-50">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 mb-1">
-                      Total Services
-                    </p>
-                    <p className="text-3xl font-bold text-gray-900">
-                      {services.length}
-                    </p>
-                  </div>
-                  <Wrench className="h-10 w-10 text-blue-600" />
-                </div>
-              </Card>
-
-              <Card className="p-6 bg-green-50">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 mb-1">
-                      Total Categories
-                    </p>
-                    <p className="text-3xl font-bold text-gray-900">
-                      {categories.length}
-                    </p>
-                  </div>
-                  <Folder className="h-10 w-10 text-green-600" />
-                </div>
-              </Card>
-
-              {categories.slice(0, 2).map((category) => (
-                <Card key={category.id} className="p-6 bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600 mb-1">
-                        {category.name}
-                      </p>
-                      <p className="text-3xl font-bold text-gray-900">
-                        {getServicesCountByCategory(category.id)}
-                      </p>
+              {loading ? (
+                Array.from({ length: 4 }).map((_, index) => (
+                  <Card key={index} className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <Skeleton lines={1} className="w-28 h-4 mb-2" />
+                        <Skeleton lines={1} className="w-12 h-8" />
+                      </div>
+                      <Skeleton variant="circle" className="h-10 w-10" />
                     </div>
-                    <FolderOpen className="h-10 w-10 text-gray-600" />
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                ))
+              ) : (
+                <>
+                  <Card className="p-6 bg-blue-50">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600 mb-1">
+                          Total Services
+                        </p>
+                        <p className="text-3xl font-bold text-gray-900">
+                          {services.length}
+                        </p>
+                      </div>
+                      <Wrench className="h-10 w-10 text-blue-600" />
+                    </div>
+                  </Card>
+
+                  <Card className="p-6 bg-green-50">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600 mb-1">
+                          Total Categories
+                        </p>
+                        <p className="text-3xl font-bold text-gray-900">
+                          {categories.length}
+                        </p>
+                      </div>
+                      <Folder className="h-10 w-10 text-green-600" />
+                    </div>
+                  </Card>
+
+                  {categories.slice(0, 2).map((category) => (
+                    <Card key={category.id} className="p-6 bg-gray-50">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600 mb-1">
+                            {category.name}
+                          </p>
+                          <p className="text-3xl font-bold text-gray-900">
+                            {getServicesCountByCategory(category.id)}
+                          </p>
+                        </div>
+                        <FolderOpen className="h-10 w-10 text-gray-600" />
+                      </div>
+                    </Card>
+                  ))}
+                </>
+              )}
             </div>
 
             {/* SERVICES TAB */}
@@ -919,7 +934,37 @@ export default function ServicesManagementPage() {
                 </Card>
 
                 {/* Services Organized by Categories */}
-                {servicesByCategory.length === 0 ? (
+                {loading ? (
+                  <div className="space-y-6">
+                    {Array.from({ length: 2 }).map((_, catIndex) => (
+                      <Card key={catIndex} className="overflow-hidden">
+                        <div className="p-6 bg-gray-50 border-b border-gray-200">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4 flex-1">
+                              <Skeleton lines={1} className="w-48 h-6 mb-2" />
+                              <Skeleton lines={1} className="w-20 h-6 rounded-full" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {Array.from({ length: 3 }).map((_, svcIndex) => (
+                              <Card key={svcIndex} className="overflow-hidden">
+                                <Skeleton variant="rect" className="h-32 w-full" />
+                                <div className="p-4">
+                                  <Skeleton lines={1} className="w-40 h-5 mb-2" />
+                                  <Skeleton lines={2} className="w-full mb-3" />
+                                  <Skeleton lines={1} className="w-20 h-5 mb-2" />
+                                  <Skeleton lines={1} className="w-24 h-4" />
+                                </div>
+                              </Card>
+                            ))}
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                ) : servicesByCategory.length === 0 ? (
                   <Card className="p-12 text-center">
                     <Wrench className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -1087,7 +1132,29 @@ export default function ServicesManagementPage() {
             {/* CATEGORIES TAB */}
             {activeTab === "categories" && (
               <div className="space-y-6">
-                {categories.length === 0 ? (
+                {loading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Array.from({ length: 6 }).map((_, index) => (
+                      <Card key={index} className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <Skeleton variant="circle" className="h-8 w-8" />
+                          <div className="flex gap-2">
+                            <Skeleton variant="circle" className="h-8 w-8" />
+                            <Skeleton variant="circle" className="h-8 w-8" />
+                          </div>
+                        </div>
+                        <Skeleton lines={1} className="w-32 h-6 mb-2" />
+                        <Skeleton lines={2} className="w-full mb-4" />
+                        <div className="pt-4 border-t">
+                          <div className="flex items-center justify-between">
+                            <Skeleton lines={1} className="w-20 h-4" />
+                            <Skeleton lines={1} className="w-24 h-4" />
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                ) : categories.length === 0 ? (
                   <Card className="p-12 text-center">
                     <Folder className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">

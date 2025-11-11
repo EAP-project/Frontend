@@ -34,6 +34,60 @@ const getApiBase = () => {
 
 const API_BASE = getApiBase();
 
+// Simple in-memory cache for GET requests to reduce duplicate API calls
+const requestCache = new Map<string, { data: unknown; timestamp: number }>();
+const CACHE_DURATION = 30000; // 30 seconds cache
+
+// Clear specific cache entries or all cache
+export function clearCache(pattern?: string) {
+  if (!pattern) {
+    requestCache.clear();
+    console.log('🧹 Cleared entire API cache');
+  } else {
+    const keysToDelete: string[] = [];
+    requestCache.forEach((_, key) => {
+      if (key.includes(pattern)) {
+        keysToDelete.push(key);
+      }
+    });
+    keysToDelete.forEach(key => requestCache.delete(key));
+    console.log(`🧹 Cleared ${keysToDelete.length} cache entries matching: ${pattern}`);
+  }
+}
+
+// Helper to make cached GET requests
+async function cachedFetch<T>(url: string, options: RequestInit): Promise<T> {
+  const cacheKey = `${url}-${options.headers ? JSON.stringify(options.headers) : ''}`;
+  const now = Date.now();
+  
+  // Check cache for GET requests only
+  if (options.method === 'GET' || !options.method) {
+    const cached = requestCache.get(cacheKey);
+    if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+      console.log('📦 Cache hit for:', url);
+      return cached.data as T;
+    }
+  }
+  
+  // Make the actual request
+  const response = await fetch(url, options);
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+  }
+  
+  const data = await response.json();
+  
+  // Cache GET requests
+  if (options.method === 'GET' || !options.method) {
+    requestCache.set(cacheKey, { data, timestamp: now });
+    console.log('💾 Cached response for:', url);
+  }
+  
+  return data as T;
+}
+
 export async function login(data: LoginRequest): Promise<LoginResponse> {
   try {
     const response = await fetch(`${API_BASE}/login`, {
@@ -212,9 +266,9 @@ export interface ServiceCategoryDTO {
 export async function getAllServices(): Promise<Service[]> {
   const token = localStorage.getItem('token');
   const url = `${API_BASE}/services`;
-  console.log('Fetching services from:', url); // Debug log
+  console.log('Fetching services from:', url);
 
-  const response = await fetch(url, {
+  return cachedFetch<Service[]>(url, {
     method: 'GET',
     headers: {
       'Accept': 'application/json',
@@ -222,18 +276,6 @@ export async function getAllServices(): Promise<Service[]> {
     },
     mode: 'cors',
   });
-
-  console.log('Services response status:', response.status); // Debug log
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    console.error('Services fetch error:', errorData); // Debug log
-    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
-  }
-
-  const data = await response.json();
-  console.log('Services response data:', data); // Debug log
-  return data;
 }
 
 export async function createService(serviceData: ServiceDTO, imageFile?: File): Promise<Service> {
@@ -684,9 +726,9 @@ export async function getAllAppointments(status?: string): Promise<Appointment[]
   const url = status 
     ? `${API_BASE}/appointments?status=${status}` 
     : `${API_BASE}/appointments`;
-  console.log('Fetching all appointments from:', url); // Debug log
+  console.log('Fetching all appointments from:', url);
   
-  const response = await fetch(url, {
+  return cachedFetch<Appointment[]>(url, {
     method: 'GET',
     headers: {
       'Accept': 'application/json',
@@ -694,13 +736,6 @@ export async function getAllAppointments(status?: string): Promise<Appointment[]
     },
     mode: 'cors',
   });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
-  }
-
-  return await response.json();
 }
 
 // Get active appointments (excluding COMPLETED and CANCELLED) for admin
@@ -709,7 +744,7 @@ export async function getActiveAppointments(): Promise<Appointment[]> {
   const url = `${API_BASE}/appointments`;
   console.log('Fetching active appointments from:', url);
   
-  const response = await fetch(url, {
+  const allAppointments = await cachedFetch<Appointment[]>(url, {
     method: 'GET',
     headers: {
       'Accept': 'application/json',
@@ -717,13 +752,7 @@ export async function getActiveAppointments(): Promise<Appointment[]> {
     },
     mode: 'cors',
   });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
-  }
-
-  const allAppointments = await response.json();
+  
   // Filter out COMPLETED and CANCELLED appointments
   return allAppointments.filter((apt: Appointment) => 
     apt.status !== 'COMPLETED' && apt.status !== 'CANCELLED'
@@ -958,7 +987,7 @@ export async function getMyServiceHistory(): Promise<Appointment[]> {
 // Get all service history for employees (all completed appointments with customer details)
 export async function getAllServiceHistory(): Promise<Appointment[]> {
   const token = localStorage.getItem('token');
-  const response = await fetch(`${API_BASE}/appointments/history`, {
+  return cachedFetch<Appointment[]>(`${API_BASE}/appointments/history`, {
     method: 'GET',
     headers: {
       'Accept': 'application/json',
@@ -966,13 +995,6 @@ export async function getAllServiceHistory(): Promise<Appointment[]> {
     },
     mode: 'cors',
   });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
-  }
-
-  return await response.json();
 }
 
 // Time Log interfaces
@@ -1016,7 +1038,7 @@ export async function getMyTimeLogs(): Promise<TimeLog[]> {
 // Get all time logs across all employees (for admin)
 export async function getAllTimeLogs(): Promise<TimeLog[]> {
   const token = localStorage.getItem('token');
-  const response = await fetch(`${API_BASE}/time-logs/all`, {
+  return cachedFetch<TimeLog[]>(`${API_BASE}/time-logs/all`, {
     method: 'GET',
     headers: {
       'Accept': 'application/json',
@@ -1024,12 +1046,5 @@ export async function getAllTimeLogs(): Promise<TimeLog[]> {
     },
     mode: 'cors',
   });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
-  }
-
-  return await response.json();
 }
 

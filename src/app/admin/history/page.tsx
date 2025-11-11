@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Appointment, getAllServiceHistory } from "@/lib/api";
+import Skeleton from "@/components/ui/Skeleton";
+import { useAuth } from "@/context/AuthContext";
 import {
   Calendar,
   Clock,
@@ -16,12 +18,7 @@ import {
 
 export default function AdminHistoryPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    role?: string;
-  } | null>(null);
+  const { user, token, initialized } = useAuth();
   const [history, setHistory] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -29,45 +26,35 @@ export default function AdminHistoryPage() {
     useState<Appointment | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userStr = localStorage.getItem("user");
-
-    if (!token || !userStr) {
-      router.push("/login");
-      return;
-    }
-
-    try {
-      const parsedUser = JSON.parse(userStr);
-      setUser(parsedUser);
-
-      if (parsedUser.role !== "ADMIN") {
-        router.push("/dashboard/customer");
-        return;
-      }
-    } catch (err) {
-      console.error("Error parsing user:", err);
-      router.push("/login");
-      return;
-    }
-
-    fetchHistory();
-  }, [router]);
-
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getAllServiceHistory();
       setHistory(data);
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch service history");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to fetch service history");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const formatDateTime = (dateTimeStr: string) => {
+  useEffect(() => {
+    if (!initialized) return;
+
+    if (!user || !token) {
+      router.push("/login");
+      return;
+    }
+
+    if (user.role !== "ADMIN") {
+      router.push("/dashboard/customer");
+      return;
+    }
+
+    fetchHistory();
+  }, [initialized, user, token, router, fetchHistory]);
+
+  const formatDateTime = useCallback((dateTimeStr: string) => {
     const date = new Date(dateTimeStr);
     return date.toLocaleString("en-US", {
       year: "numeric",
@@ -76,37 +63,12 @@ export default function AdminHistoryPage() {
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
+  }, []);
 
-  const viewDetails = (appointment: Appointment) => {
+  const viewDetails = useCallback((appointment: Appointment) => {
     setSelectedAppointment(appointment);
     setShowDetailsModal(true);
-  };
-
-  if (loading) {
-    return (
-      <div className="flex h-screen">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading service history...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex h-screen">
-        <div className="flex-1 p-6">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  }, []);
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -121,7 +83,67 @@ export default function AdminHistoryPage() {
             </p>
           </div>
 
-          {history.length === 0 ? (
+          {/* Error Message - Inline */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ID
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Customer
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Service
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Vehicle
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <tr key={index}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton lines={1} className="w-12 h-4" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton lines={2} className="w-40" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton lines={1} className="w-24 h-4" />
+                        </td>
+                        <td className="px-6 py-4">
+                          <Skeleton lines={1} className="w-32 h-4" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton lines={2} className="w-28" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton variant="circle" className="h-5 w-5" />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : history.length === 0 ? (
             <div className="bg-white rounded-lg shadow p-8 text-center">
               <CheckCircle className="h-16 w-16 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 text-lg">No service history found</p>

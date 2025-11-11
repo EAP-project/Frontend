@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import {
   createService,
   ServiceDTO,
@@ -14,11 +15,7 @@ import { Plus, Upload, X, Save } from "lucide-react";
 
 export default function AddServicePage() {
   const router = useRouter();
-  const [user, setUser] = useState<{
-    firstName?: string;
-    lastName?: string;
-    role?: string;
-  } | null>(null);
+  const { user, token, initialized } = useAuth();
 
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [formData, setFormData] = useState({
@@ -35,24 +32,20 @@ export default function AddServicePage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userStr = localStorage.getItem("user");
+    if (!initialized) return;
 
-    if (!token || !userStr) {
+    if (!user || !token) {
       router.push("/login");
       return;
     }
 
-    const userData = JSON.parse(userStr);
-    setUser(userData);
-
-    if (!userData.role?.toUpperCase().includes("ADMIN")) {
+    if (!user.role?.toUpperCase().includes("ADMIN")) {
       router.push("/dashboard/customer");
       return;
     }
 
     loadCategories();
-  }, [router]);
+  }, [initialized, user, token, router]);
 
   const loadCategories = async () => {
     try {
@@ -131,14 +124,6 @@ export default function AddServicePage() {
       setLoading(false);
     }
   };
-
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="p-8">
