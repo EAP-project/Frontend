@@ -11,6 +11,7 @@ import {
 } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/Button";
+import Skeleton from "@/components/ui/Skeleton";
 import {
   Calendar,
   Plus,
@@ -418,8 +419,38 @@ export default function AppointmentsPage() {
 
         {/* Appointments List */}
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-lg text-gray-600">Loading appointments...</div>
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="p-6">
+                <div className="flex items-start gap-4">
+                  <Skeleton variant="circle" className="h-12 w-12" />
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <Skeleton lines={1} className="w-32 h-6 mb-2" />
+                        <Skeleton lines={1} className="w-48 h-4" />
+                      </div>
+                      <Skeleton variant="rect" className="h-6 w-24 rounded-full" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <div>
+                        <Skeleton lines={1} className="w-16 h-4 mb-1" />
+                        <Skeleton lines={1} className="w-32 h-5" />
+                      </div>
+                      <div>
+                        <Skeleton lines={1} className="w-16 h-4 mb-1" />
+                        <Skeleton lines={1} className="w-40 h-5" />
+                      </div>
+                      <div>
+                        <Skeleton lines={1} className="w-16 h-4 mb-1" />
+                        <Skeleton lines={1} className="w-20 h-5" />
+                      </div>
+                    </div>
+                    <Skeleton lines={2} className="w-full" />
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
         ) : filteredAppointments.length === 0 ? (
           <Card className="p-12 text-center">
